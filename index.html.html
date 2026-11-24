@@ -1,0 +1,2720 @@
+<!DOCTYPE html>
+<html lang="ne" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f0f0f" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>SangeetTube Pro — युट्युब र अफलाइन अडियो/भिडियो भल्ट</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg-main: #0f0f0f;
+      --bg-card: #1a1a1a;
+      --bg-elevated: #242424;
+      --yt-red: #ff0033;
+      --yt-red-hover: #e6002e;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans Devanagari', system-ui, -apple-system, sans-serif;
+      background-color: var(--bg-main);
+      color: #f1f1f1;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0f0f0f; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 9999px; }
+
+    input[type="range"].seek-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"].seek-slider::-webkit-slider-runnable-track {
+      height: 4px;
+      border-radius: 9999px;
+      background: #3f3f3f;
+    }
+    input[type="range"].seek-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ff0033;
+      margin-top: -5px;
+      box-shadow: 0 0 0 3px rgba(255, 0, 51, 0.25);
+    }
+
+    @keyframes eqBounce {
+      0%, 100% { height: 20%; }
+      50% { height: 100%; }
+    }
+    .eq-bar { animation: eqBounce 0.9s ease-in-out infinite; }
+    .eq-bar:nth-child(2) { animation-delay: 0.2s; }
+    .eq-bar:nth-child(3) { animation-delay: 0.4s; }
+    .eq-bar:nth-child(4) { animation-delay: 0.15s; }
+    .eq-paused .eq-bar { animation-play-state: paused; height: 25% !important; }
+
+    .yt-aspect {
+      position: relative;
+      width: 100%;
+      padding-bottom: 56.25%;
+      background: #000;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .yt-aspect iframe,
+    .yt-aspect video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#0f0f0f] text-zinc-100 select-none">
+
+  <!-- Hidden Background Audio Engine (Lock-Screen & Offline Playback) -->
+  <audio id="offlineAudio" preload="metadata" playsinline></audio>
+
+  <!-- Top Header -->
+  <header class="sticky top-0 z-30 bg-[#0f0f0f]/95 backdrop-blur-md border-b border-zinc-800/80">
+    <div class="max-w-5xl mx-auto px-3 sm:px-5 h-14 flex items-center justify-between gap-2">
+      <button id="brandHomeBtn" type="button" class="flex items-center gap-2 shrink-0 focus:outline-none">
+        <div class="w-8 h-8 rounded-lg bg-[#ff0033] flex items-center justify-center shadow-lg shadow-red-900/30">
+          <i data-lucide="play" class="w-4 h-4 text-white fill-white ml-0.5"></i>
+        </div>
+        <div class="text-left leading-tight">
+          <span class="font-bold text-base tracking-tight text-white">Sangeet<span class="text-[#ff0033]">Tube</span></span>
+          <span class="block text-[10px] text-zinc-400">युट्युब + अफलाइन अडियो/भिडियो भल्ट</span>
+        </div>
+      </button>
+
+      <div class="flex items-center gap-2">
+        <div id="networkBadge" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+          <span id="networkDot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span id="networkText">अनलाइन</span>
+        </div>
+        <button id="headerSettingsBtn" type="button" title="सेटिङ र ब्याकअप" class="p-2 rounded-full bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 transition">
+          <i data-lucide="settings" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <div class="flex-1 max-w-5xl w-full mx-auto flex">
+    <!-- Desktop Sidebar -->
+    <aside class="hidden md:flex flex-col w-60 shrink-0 border-r border-zinc-800/80 p-3 gap-1.5 sticky top-14 h-[calc(100vh-3.5rem)]">
+      <button type="button" data-nav="youtube" class="nav-btn flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition">
+        <i data-lucide="youtube" class="w-5 h-5"></i>
+        <span>युट्युब / एकीकृत खोज</span>
+      </button>
+      <button type="button" data-nav="offline" class="nav-btn flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition">
+        <i data-lucide="hard-drive-download" class="w-5 h-5"></i>
+        <span>अफलाइन भल्ट</span>
+        <span id="sidebarOfflineCount" class="ml-auto text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300">0</span>
+      </button>
+      <button type="button" data-nav="playlists" class="nav-btn flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition">
+        <i data-lucide="list-music" class="w-5 h-5"></i>
+        <span>प्लेलिस्ट</span>
+        <span id="sidebarPlaylistCount" class="ml-auto text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300">0</span>
+      </button>
+      <button type="button" data-nav="settings" class="nav-btn flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition">
+        <i data-lucide="sliders-horizontal" class="w-5 h-5"></i>
+        <span>ब्याकअप र सेटिङ</span>
+      </button>
+
+      <div class="mt-auto p-3 rounded-xl bg-zinc-900/90 border border-zinc-800 text-xs text-zinc-400 space-y-1.5">
+        <div class="flex items-center gap-1.5 text-zinc-200 font-medium">
+          <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+          <span>रियल अफलाइन इन्जिन</span>
+        </div>
+        <p class="leading-relaxed">IndexedDB भल्टमा अडियो, भिडियो र विवरण सुरक्षित रहन्छन् — नेटवर्क बिना नै खोज्न, बजाउन र फाइल रिट्राइभ गर्न मिल्छ।</p>
+      </div>
+    </aside>
+
+    <!-- Main Content Views -->
+    <main class="flex-1 min-w-0 px-3 sm:px-5 pt-4 pb-36 md:pb-28">
+
+      <!-- ==================== TAB 1: UNIFIED YOUTUBE & OFFLINE SEARCH ==================== -->
+      <section id="view-youtube" class="space-y-5">
+        <!-- Unified Search & YouTube URL Box -->
+        <div class="bg-[#181818] border border-zinc-800 rounded-2xl p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h1 class="text-sm sm:text-base font-semibold text-white flex items-center gap-2">
+              <i data-lucide="search" class="w-5 h-5 text-[#ff0033]"></i>
+              <span>एकीकृत खोज (अनलाइन युट्युब + अफलाइन भल्ट)</span>
+            </h1>
+            <div class="flex items-center gap-1.5">
+              <button id="searchScopeOnlineBtn" type="button" class="px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#ff0033] text-white transition">अनलाइन + अफलाइन</button>
+              <button id="searchScopeOfflineBtn" type="button" class="px-2.5 py-1 rounded-full text-[11px] font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition">अफलाइन मात्र</button>
+              <span id="apiStatusPill" class="text-[11px] px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400">URL मोड</span>
+            </div>
+          </div>
+
+          <form id="ytInputForm" class="flex flex-col sm:flex-row gap-2">
+            <div class="relative flex-1">
+              <i data-lucide="search" class="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+              <input
+                id="ytQueryInput"
+                type="text"
+                placeholder="गाना, गायक, ट्याग, विवरण खोज्नुहोस् वा युट्युब URL पेस्ट गर्नुहोस्..."
+                class="w-full pl-10 pr-9 py-2.5 rounded-xl bg-[#0f0f0f] border border-zinc-700 focus:border-[#ff0033] focus:outline-none text-sm text-white placeholder-zinc-500"
+              />
+              <button id="clearYtInputBtn" type="button" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-1">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <div class="flex gap-2">
+              <button type="submit" class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-[#ff0033] hover:bg-[#e6002e] text-white text-sm font-semibold flex items-center justify-center gap-2 transition">
+                <i data-lucide="play" class="w-4 h-4 fill-white"></i>
+                <span>खोज्नुहोस् / बजाउनुहोस्</span>
+              </button>
+              <button id="pasteYtBtn" type="button" title="क्लिपबोर्डबाट पेस्ट गर्नुहोस्" class="px-3 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-medium flex items-center gap-1.5 transition">
+                <i data-lucide="clipboard-paste" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">पेस्ट</span>
+              </button>
+            </div>
+          </form>
+
+          <!-- API Key Notice if not configured -->
+          <div id="apiKeyBanner" class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-xl bg-zinc-900/90 border border-zinc-800 text-xs text-zinc-400">
+            <span>सीधै नाम लेखेर अनलाइन युट्युब सर्च गर्न <strong class="text-zinc-200">YouTube API Key</strong> राख्नुहोस्। अफलाइन भल्ट खोज र युट्युब URL प्लेयर बिना Key नै चल्छ।</span>
+            <button id="openApiSettingsBtn" type="button" class="text-[#ff4d6d] hover:underline font-medium shrink-0">API Key राख्नुहोस् →</button>
+          </div>
+        </div>
+
+        <!-- Unified Offline Vault Search Matches (Instant, Works with Zero Network) -->
+        <div id="unifiedOfflineResultsSection" class="hidden space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-emerald-400 flex items-center gap-2">
+              <i data-lucide="wifi-off" class="w-4 h-4"></i>
+              <span>अफलाइन भल्ट र सेभ विवरणमा भेटिएका नतिजा</span>
+              <span id="unifiedOfflineCount" class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300">0</span>
+            </h2>
+            <button id="clearUnifiedOfflineBtn" type="button" class="text-xs text-zinc-400 hover:text-white">बन्द गर्नुहोस्</button>
+          </div>
+          <div id="unifiedOfflineGrid" class="space-y-2"></div>
+        </div>
+
+        <!-- Active YouTube Video Player -->
+        <div id="ytPlayerCard" class="hidden bg-[#181818] border border-zinc-800 rounded-2xl p-3 sm:p-4 space-y-3">
+          <div class="yt-aspect">
+            <iframe
+              id="ytIframe"
+              src=""
+              title="YouTube Player"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+            ></iframe>
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="min-w-0 flex-1">
+              <h2 id="ytNowTitle" class="text-sm sm:text-base font-semibold text-white truncate">युट्युब भिडियो</h2>
+              <p id="ytNowChannel" class="text-xs text-zinc-400 truncate">YouTube Official Player</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <button id="toggleEmbedModeBtn" type="button" class="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-zinc-200 flex items-center gap-1 transition" title="YouTube Embed मोड बदल्नुहोस्">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>मोड बदल्नुहोस्</span>
+              </button>
+              <a id="openYtExternalLink" href="https://www.youtube.com" target="_blank" rel="noopener" class="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-zinc-200 flex items-center gap-1 transition" title="सीधै YouTube मा खोल्नुहोस्">
+                <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                <span class="hidden sm:inline">YouTube</span>
+              </a>
+              <button id="saveCurrentYtBtn" type="button" class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-white flex items-center gap-1.5 transition">
+                <i data-lucide="bookmark-plus" class="w-4 h-4 text-[#ff0033]"></i>
+                <span>विवरण सेभ</span>
+              </button>
+              <button id="addCurrentYtPlaylistBtn" type="button" class="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-white flex items-center gap-1.5 transition">
+                <i data-lucide="list-plus" class="w-4 h-4"></i>
+                <span>प्लेलिस्ट</span>
+              </button>
+              <button id="closeYtPlayerBtn" type="button" title="प्लेयर बन्द गर्नुहोस्" class="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white transition">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-200/90">
+            <i data-lucide="smartphone" class="w-4 h-4 shrink-0 text-amber-400"></i>
+            <span>Brave मोबाइलमा स्क्रिन लक गर्दा पनि युट्युब बजाउन: <strong>Brave Settings → Media → Background play</strong> अन गर्नुहोस्।</span>
+          </div>
+          <div id="embedOriginWarning" class="hidden flex items-start gap-2 px-3 py-2 rounded-xl bg-sky-500/10 border border-sky-500/25 text-[11px] text-sky-200/95 leading-relaxed">
+            <i data-lucide="alert-circle" class="w-4 h-4 shrink-0 text-sky-400 mt-0.5"></i>
+            <span>यो फाइल अहिले लोकल/प्रिभ्यू मोडमा खुलेकोले YouTube ले सुरक्षा कारणले <strong>Error 153</strong> देखाउन सक्छ। माथिको <strong>YouTube</strong> बटनबाट सीधै खोल्नुहोस् वा यो HTML फाइललाई निःशुल्क <strong>Netlify Drop / GitHub Pages (HTTPS)</strong> मा अपलोड गरेर चलाउनुहोस् — त्यसपछि Error 153 कहिल्यै आउँदैन।</span>
+          </div>
+        </div>
+
+        <!-- YouTube Online Search Results (Real API Results Only) -->
+        <div id="ytSearchResultsSection" class="hidden space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-zinc-200">अनलाइन युट्युब खोज नतिजा (YouTube API)</h2>
+            <button id="clearSearchResultsBtn" type="button" class="text-xs text-zinc-400 hover:text-white">हटाउनुहोस्</button>
+          </div>
+          <div id="ytSearchResultsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+        </div>
+
+        <!-- Saved YouTube Library (Metadata Cached Offline) -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm sm:text-base font-semibold text-white flex items-center gap-2">
+              <i data-lucide="bookmark" class="w-4 h-4 text-[#ff0033]"></i>
+              <span>सेभ गरिएका युट्युब गाना र विवरणहरू</span>
+              <span id="savedYtCount" class="text-xs px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300">0</span>
+            </h2>
+          </div>
+          <div id="savedYtEmpty" class="bg-[#161616] border border-dashed border-zinc-800 rounded-2xl p-8 text-center space-y-2">
+            <div class="w-12 h-12 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
+              <i data-lucide="youtube" class="w-6 h-6"></i>
+            </div>
+            <p class="text-sm font-medium text-zinc-300">अहिलेसम्म कुनै युट्युब गाना सेभ गरिएको छैन</p>
+            <p class="text-xs text-zinc-500 max-w-md mx-auto">माथिको बक्समा कुनै पनि युट्युब URL पेस्ट गर्दा शीर्षक र च्यानलको विवरण स्वतः तानिन्छ र अफलाइनमा समेत खोज्न मिल्ने गरी सेभ हुन्छ।</p>
+          </div>
+          <div id="savedYtGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 2: OFFLINE MEDIA VAULT (AUDIO + VIDEO) ==================== -->
+      <section id="view-offline" class="hidden space-y-5">
+        <!-- Offline Video Player Card (Hidden until video plays) -->
+        <div id="offlineVideoCard" class="hidden bg-[#181818] border border-zinc-800 rounded-2xl p-3 sm:p-4 space-y-3">
+          <div class="yt-aspect">
+            <video id="offlineVideoEl" controls playsinline></video>
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="min-w-0 flex-1">
+              <h2 id="offlineVideoTitle" class="text-sm sm:text-base font-semibold text-white truncate">अफलाइन भिडियो</h2>
+              <p id="offlineVideoMeta" class="text-xs text-zinc-400 truncate">स्थानीय भिडियो</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-1.5">
+              <button id="switchVideoToBgAudioBtn" type="button" class="px-3 py-1.5 rounded-lg bg-[#ff0033] hover:bg-[#e6002e] text-xs font-semibold text-white flex items-center gap-1.5 transition" title="स्क्रिन लक गरेर अडियो मात्र बजाउनुहोस्">
+                <i data-lucide="headphones" class="w-4 h-4"></i>
+                <span>स्क्रिन-लक अडियो मोड</span>
+              </button>
+              <button id="pipVideoBtn" type="button" class="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-zinc-200 flex items-center gap-1 transition" title="Picture-in-Picture">
+                <i data-lucide="picture-in-picture-2" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">PiP</span>
+              </button>
+              <button id="closeOfflineVideoBtn" type="button" class="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-white">
+                <i data-lucide="x" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hero Import Banner -->
+        <div class="bg-gradient-to-br from-[#1f1215] via-[#181818] to-[#141920] border border-zinc-800 rounded-2xl p-4 sm:p-5 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="space-y-1">
+              <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[11px] font-medium">
+                <i data-lucide="wifi-off" class="w-3.5 h-3.5"></i>
+                <span>१००% अफलाइन अडियो/भिडियो भल्ट + स्क्रिन-लक प्लेयर</span>
+              </div>
+              <h1 class="text-base sm:text-lg font-bold text-white">अफलाइन गाना, भिडियो र विवरण भल्ट</h1>
+              <p class="text-xs text-zinc-400 max-w-xl">आफ्नो मोबाइलमा डाउनलोड भएका MP3/Audio र MP4/Video फाइल यहाँ सेभ गर्नुहोस्। थम्बनेल, गायक, एल्बम र विवरण स्वतः सेभ हुन्छन्, अफलाइनमा युट्युब जस्तै खोज्न मिल्छ र जुनसुकै बेला फाइल रिट्राइभ (डाउनलोड) गर्न सकिन्छ।</p>
+            </div>
+            <div class="shrink-0">
+              <input id="audioFileInput" type="file" accept="audio/*,video/*,.mp3,.m4a,.wav,.ogg,.flac,.aac,.mp4,.webm,.mkv,.mov" multiple class="hidden" />
+              <button id="importAudioBtn" type="button" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#ff0033] hover:bg-[#e6002e] text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-red-950/40 transition">
+                <i data-lucide="folder-plus" class="w-4 h-4"></i>
+                <span>अडियो / भिडियो थप्नुहोस्</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Offline Filter Chips & Controls -->
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button type="button" data-offline-filter="all" class="offline-filter-chip px-3 py-1 rounded-full text-xs font-medium bg-white text-black transition">सबै</button>
+            <button type="button" data-offline-filter="audio" class="offline-filter-chip px-3 py-1 rounded-full text-xs font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition">अडियो (MP3)</button>
+            <button type="button" data-offline-filter="video" class="offline-filter-chip px-3 py-1 rounded-full text-xs font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition">भिडियो (MP4)</button>
+            <button type="button" data-offline-filter="favorite" class="offline-filter-chip px-3 py-1 rounded-full text-xs font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition">मनपर्ने ★</button>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="playAllOfflineBtn" type="button" class="px-3.5 py-2 rounded-xl bg-white text-black hover:bg-zinc-200 text-xs font-semibold flex items-center gap-1.5 transition">
+              <i data-lucide="play" class="w-3.5 h-3.5 fill-black"></i>
+              <span>सबै बजाउनुहोस्</span>
+            </button>
+            <button id="shuffleAllOfflineBtn" type="button" class="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold flex items-center gap-1.5 transition">
+              <i data-lucide="shuffle" class="w-3.5 h-3.5"></i>
+              <span>सफल (Shuffle)</span>
+            </button>
+            <div class="relative flex-1 min-w-[160px]">
+              <i data-lucide="search" class="w-3.5 h-3.5 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+              <input
+                id="offlineSearchInput"
+                type="text"
+                placeholder="नाम, गायक, एल्बम, ट्याग वा विवरण खोज्नुहोस्..."
+                class="w-full pl-8 pr-3 py-1.5 rounded-xl bg-[#0f0f0f] border border-zinc-700 focus:border-zinc-500 focus:outline-none text-xs text-white placeholder-zinc-500"
+              />
+            </div>
+            <select id="offlineSortSelect" class="px-3 py-1.5 rounded-xl bg-[#0f0f0f] border border-zinc-700 text-xs text-zinc-200 focus:outline-none">
+              <option value="newest">नयाँ पहिले</option>
+              <option value="name">नाम (A–Z)</option>
+              <option value="artist">गायक अनुसार</option>
+              <option value="duration">अवधि अनुसार</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Offline Track List -->
+        <div id="offlineEmpty" class="bg-[#161616] border border-dashed border-zinc-800 rounded-2xl p-8 text-center space-y-3">
+          <div class="w-12 h-12 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
+            <i data-lucide="music" class="w-6 h-6"></i>
+          </div>
+          <p class="text-sm font-medium text-zinc-300">अफलाइन भल्ट खाली छ</p>
+          <p class="text-xs text-zinc-500 max-w-md mx-auto">"अडियो / भिडियो थप्नुहोस्" थिचेर आफ्ना डाउनलोड गरिएका MP3 वा MP4 फाइलहरू छान्नुहोस्। सेभ भएपछि इन्टरनेट बिना नै खोज्न, स्क्रिन लकमा बजाउन र रिट्राइभ गर्न मिल्छ।</p>
+        </div>
+
+        <div id="offlineTrackList" class="space-y-2"></div>
+      </section>
+
+      <!-- ==================== TAB 3: PLAYLISTS ==================== -->
+      <section id="view-playlists" class="hidden space-y-5">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h1 class="text-base sm:text-lg font-bold text-white">मेरा प्लेलिस्टहरू</h1>
+            <p class="text-xs text-zinc-400">युट्युब र अफलाइन अडियो/भिडियोहरूलाई एउटै प्लेलिस्टमा मिलाएर राख्नुहोस्</p>
+          </div>
+          <button id="createPlaylistBtn" type="button" class="px-3.5 py-2 rounded-xl bg-[#ff0033] hover:bg-[#e6002e] text-white text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition shrink-0">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>नयाँ प्लेलिस्ट</span>
+          </button>
+        </div>
+
+        <div id="playlistsEmpty" class="bg-[#161616] border border-dashed border-zinc-800 rounded-2xl p-8 text-center space-y-2">
+          <div class="w-12 h-12 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-500">
+            <i data-lucide="list-music" class="w-6 h-6"></i>
+          </div>
+          <p class="text-sm font-medium text-zinc-300">कुनै प्लेलिस्ट बनाइएको छैन</p>
+          <p class="text-xs text-zinc-500">"नयाँ प्लेलिस्ट" थिचेर आफ्नो मनपर्ने गानाको सूची बनाउनुहोस्।</p>
+        </div>
+        <div id="playlistsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+
+        <!-- Active Playlist Detail View -->
+        <div id="playlistDetailCard" class="hidden bg-[#181818] border border-zinc-800 rounded-2xl p-4 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-3">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <button id="backToPlaylistsBtn" type="button" class="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+              </button>
+              <div class="min-w-0">
+                <h2 id="playlistDetailTitle" class="text-base font-bold text-white truncate">प्लेलिस्ट</h2>
+                <p id="playlistDetailMeta" class="text-xs text-zinc-400">0 गाना</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="playPlaylistOfflineBtn" type="button" class="px-3 py-1.5 rounded-lg bg-white text-black hover:bg-zinc-200 text-xs font-semibold flex items-center gap-1.5 transition">
+                <i data-lucide="play" class="w-3.5 h-3.5 fill-black"></i>
+                <span>अफलाइन बजाउनुहोस्</span>
+              </button>
+              <button id="deleteCurrentPlaylistBtn" type="button" class="p-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-400 transition" title="प्लेलिस्ट मेटाउनुहोस्">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+          <div id="playlistDetailItems" class="space-y-2"></div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 4: BACKUP, STORAGE & SETTINGS ==================== -->
+      <section id="view-settings" class="hidden space-y-5">
+        <h1 class="text-base sm:text-lg font-bold text-white">ब्याकअप, रिट्राइभ र सेटिङ</h1>
+
+        <!-- Storage, Persistence & Backup/Retrieve Engine -->
+        <div class="bg-[#181818] border border-zinc-800 rounded-2xl p-4 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <i data-lucide="database" class="w-5 h-5 text-emerald-400"></i>
+              <h2 class="text-sm font-semibold text-white">स्टोरेज, ब्याकअप र डाटा रिट्राइभ</h2>
+            </div>
+            <span id="persistStatusBadge" class="text-[11px] px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400">जाँच हुँदैछ...</span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+            <div class="p-3 rounded-xl bg-[#0f0f0f] border border-zinc-800">
+              <div id="statOfflineCount" class="text-lg font-bold text-white">0</div>
+              <div class="text-[11px] text-zinc-400">अफलाइन फाइल</div>
+            </div>
+            <div class="p-3 rounded-xl bg-[#0f0f0f] border border-zinc-800">
+              <div id="statOfflineSize" class="text-lg font-bold text-emerald-400">0 MB</div>
+              <div class="text-[11px] text-zinc-400">भल्ट साइज</div>
+            </div>
+            <div class="p-3 rounded-xl bg-[#0f0f0f] border border-zinc-800">
+              <div id="statYtCount" class="text-lg font-bold text-[#ff4d6d]">0</div>
+              <div class="text-[11px] text-zinc-400">सेभ युट्युब</div>
+            </div>
+            <div class="p-3 rounded-xl bg-[#0f0f0f] border border-zinc-800">
+              <div id="statQuotaText" class="text-lg font-bold text-sky-400">—</div>
+              <div class="text-[11px] text-zinc-400">उपलब्ध कोटा</div>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <button id="requestPersistBtn" type="button" class="px-3.5 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-1.5 transition">
+              <i data-lucide="lock" class="w-4 h-4"></i>
+              <span>स्थायी स्टोरेज सुरक्षित गर्नुहोस्</span>
+            </button>
+            <button id="exportBackupBtn" type="button" class="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold flex items-center gap-1.5 transition">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              <span>विवरण/प्लेलिस्ट ब्याकअप (JSON)</span>
+            </button>
+            <input id="importBackupInput" type="file" accept=".json,application/json" class="hidden" />
+            <button id="importBackupBtn" type="button" class="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold flex items-center gap-1.5 transition">
+              <i data-lucide="upload" class="w-4 h-4"></i>
+              <span>ब्याकअप रिट्राइभ (Import JSON)</span>
+            </button>
+            <button id="clearOfflineStorageBtn" type="button" class="px-3.5 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-400 text-xs font-semibold flex items-center gap-1.5 transition">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+              <span>अफलाइन भल्ट खाली गर्नुहोस्</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- YouTube Data API v3 Key -->
+        <div class="bg-[#181818] border border-zinc-800 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center gap-2">
+            <i data-lucide="key-round" class="w-5 h-5 text-[#ff0033]"></i>
+            <h2 class="text-sm font-semibold text-white">YouTube Data API v3 Key (अनलाइन युट्युब खोजको लागि)</h2>
+          </div>
+          <p class="text-xs text-zinc-400 leading-relaxed">
+            अनलाइन हुँदा गानाको नाम लेखेर सीधै युट्युबमा खोज्नको लागि आफ्नो निःशुल्क Google Cloud YouTube Data API v3 Key सेभ गर्नुहोस्।
+          </p>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input
+              id="apiKeyInput"
+              type="password"
+              placeholder="AIzaSy... (तपाईँको YouTube API Key)"
+              class="flex-1 px-3.5 py-2 rounded-xl bg-[#0f0f0f] border border-zinc-700 focus:border-[#ff0033] focus:outline-none text-sm text-white"
+            />
+            <button id="saveApiKeyBtn" type="button" class="px-4 py-2 rounded-xl bg-[#ff0033] hover:bg-[#e6002e] text-white text-sm font-semibold transition">सेभ गर्नुहोस्</button>
+            <button id="clearApiKeyBtn" type="button" class="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm transition">हटाउनुहोस्</button>
+          </div>
+          <p class="text-[11px] text-zinc-500">
+            API Key लिन: Google Cloud Console → APIs & Services → YouTube Data API v3 Enable → Credentials → Create API Key।
+          </p>
+        </div>
+
+        <!-- Brave Android Lock-Screen Guide -->
+        <div class="bg-[#181818] border border-zinc-800 rounded-2xl p-4 space-y-3">
+          <div class="flex items-center gap-2">
+            <i data-lucide="smartphone" class="w-5 h-5 text-orange-400"></i>
+            <h2 class="text-sm font-semibold text-white">एन्ड्रोइड र Brave मोबाइलमा स्क्रिन लक प्ले सेटअप</h2>
+          </div>
+          <ol class="list-decimal list-inside space-y-2 text-xs text-zinc-300 leading-relaxed">
+            <li><strong>Brave Background Play:</strong> Brave Menu (⋮) → <strong>Settings → Media → Background play ON</strong> गर्नुहोस् (यसो गर्दा अनलाइन युट्युब पनि स्क्रिन लकमा बज्छ)।</li>
+            <li><strong>ब्याट्री अप्टिमाइजेसन:</strong> Android Settings → Apps → Brave → Battery → <strong>Unrestricted</strong> राख्नुहोस्, ताकि स्क्रिन लक हुँदा अडियो नरोकियोस्।</li>
+            <li><strong>अफलाइन भिडियो स्क्रिन लकमा बजाउन:</strong> भिडियो प्ले भएपछि <strong>"स्क्रिन-लक अडियो मोड"</strong> थिच्नुहोस् — त्यसपछि स्क्रिन लक गर्दा पनि लक-स्क्रिन कन्ट्रोलसहित आवाज निरन्तर बज्छ।</li>
+            <li><strong>एप जस्तै इन्स्टल गर्न:</strong> Brave Menu (⋮) → <strong>Add to Home screen / Install app</strong> थिच्नुहोस्।</li>
+          </ol>
+        </div>
+
+        <!-- Policy Transparency -->
+        <div class="bg-[#181818] border border-zinc-800 rounded-2xl p-4 space-y-2">
+          <div class="flex items-center gap-2">
+            <i data-lucide="info" class="w-5 h-5 text-sky-400"></i>
+            <h2 class="text-sm font-semibold text-white">युट्युब नियम र अफलाइन भल्ट बारे स्पष्ट जानकारी</h2>
+          </div>
+          <p class="text-xs text-zinc-400 leading-relaxed">
+            YouTube को आधिकारिक Terms of Service अनुसार YouTube सर्भरबाट भिडियो/अडियो सीधै डाउनलोड वा स्क्र्याप गर्न पाइँदैन (YouTube Premium बाहेक)। त्यसैले यो एपले अनलाइनमा आधिकारिक YouTube Player प्रयोग गर्छ र तपाईँको डिभाइसमा भएका वा डाउनलोड गरिएका अडियो/भिडियो फाइलहरूलाई IndexedDB भल्टमा सुरक्षित राखी अफलाइन खोज, प्लेब्याक र रिट्राइभ सुविधा दिन्छ।
+          </p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ==================== PERSISTENT MINI-PLAYER ==================== -->
+  <div id="miniPlayer" class="hidden fixed left-0 right-0 bottom-16 md:bottom-0 z-40 bg-[#1c1c1c]/95 backdrop-blur-md border-t border-zinc-800 shadow-2xl">
+    <div class="w-full h-0.5 bg-zinc-800">
+      <div id="miniProgressFill" class="h-full bg-[#ff0033] w-0 transition-all duration-150"></div>
+    </div>
+    <div class="max-w-5xl mx-auto px-3 sm:px-5 h-16 flex items-center justify-between gap-3">
+      <button id="openFullPlayerBtn" type="button" class="flex items-center gap-3 min-w-0 flex-1 text-left focus:outline-none">
+        <div id="miniEq" class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#ff0033] to-rose-700 flex items-end justify-center gap-0.5 p-2.5 shrink-0 eq-paused overflow-hidden">
+          <span class="eq-bar w-1 bg-white rounded-full"></span>
+          <span class="eq-bar w-1 bg-white rounded-full"></span>
+          <span class="eq-bar w-1 bg-white rounded-full"></span>
+          <span class="eq-bar w-1 bg-white rounded-full"></span>
+        </div>
+        <div class="min-w-0">
+          <div id="miniTrackTitle" class="text-sm font-semibold text-white truncate">कुनै गाना छैन</div>
+          <div id="miniTrackSub" class="text-xs text-zinc-400 truncate">अफलाइन प्लेयर • 0:00 / 0:00</div>
+        </div>
+      </button>
+
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button id="miniPrevBtn" type="button" class="p-2 rounded-full hover:bg-zinc-800 text-zinc-200 transition" title="अघिल्लो">
+          <i data-lucide="skip-back" class="w-5 h-5"></i>
+        </button>
+        <button id="miniPlayPauseBtn" type="button" class="w-10 h-10 rounded-full bg-white text-black hover:bg-zinc-200 flex items-center justify-center transition" title="बजाउनुहोस् / रोक्नुहोस्">
+          <i id="miniPlayIcon" data-lucide="play" class="w-5 h-5 fill-black ml-0.5"></i>
+        </button>
+        <button id="miniNextBtn" type="button" class="p-2 rounded-full hover:bg-zinc-800 text-zinc-200 transition" title="अर्को">
+          <i data-lucide="skip-forward" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MOBILE BOTTOM NAV ==================== -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 bg-[#0f0f0f]/95 backdrop-blur-md border-t border-zinc-800 grid grid-cols-4">
+    <button type="button" data-nav="youtube" class="nav-btn-mobile flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition">
+      <i data-lucide="youtube" class="w-5 h-5"></i>
+      <span>खोज / YT</span>
+    </button>
+    <button type="button" data-nav="offline" class="nav-btn-mobile flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition">
+      <i data-lucide="hard-drive-download" class="w-5 h-5"></i>
+      <span>अफलाइन भल्ट</span>
+    </button>
+    <button type="button" data-nav="playlists" class="nav-btn-mobile flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition">
+      <i data-lucide="list-music" class="w-5 h-5"></i>
+      <span>प्लेलिस्ट</span>
+    </button>
+    <button type="button" data-nav="settings" class="nav-btn-mobile flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition">
+      <i data-lucide="sliders-horizontal" class="w-5 h-5"></i>
+      <span>ब्याकअप</span>
+    </button>
+  </nav>
+
+  <!-- ==================== FULL-SCREEN NOW PLAYING MODAL ==================== -->
+  <div id="fullPlayerModal" class="hidden fixed inset-0 z-50 bg-gradient-to-b from-[#231015] via-[#121212] to-[#0a0a0a] flex flex-col">
+    <div class="max-w-lg w-full mx-auto flex-1 flex flex-col justify-between p-5">
+      <div class="flex items-center justify-between">
+        <button id="closeFullPlayerBtn" type="button" class="p-2 rounded-full bg-zinc-900/70 hover:bg-zinc-800 text-zinc-200">
+          <i data-lucide="chevron-down" class="w-6 h-6"></i>
+        </button>
+        <div class="text-center">
+          <span class="text-[11px] uppercase tracking-wider text-zinc-400">अफलाइन स्क्रिन-लक प्लेयर</span>
+          <div id="sleepTimerBadge" class="hidden text-[11px] text-amber-400 font-medium"></div>
+        </div>
+        <button id="cycleSleepTimerBtn" type="button" title="निद्रा टाइमर (Sleep Timer)" class="p-2 rounded-full bg-zinc-900/70 hover:bg-zinc-800 text-zinc-200">
+          <i data-lucide="moon" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="my-6 flex flex-col items-center">
+        <div id="fullArtwork" class="relative w-56 h-56 sm:w-64 sm:h-64 rounded-3xl bg-gradient-to-br from-[#ff0033] via-rose-800 to-zinc-900 shadow-2xl shadow-red-950/50 border border-white/10 flex flex-col items-center justify-center gap-4 eq-paused overflow-hidden">
+          <img id="fullArtworkImg" src="" alt="" class="hidden absolute inset-0 w-full h-full object-cover opacity-85" />
+          <div class="relative z-10 flex items-end justify-center gap-2 h-16">
+            <span class="eq-bar w-2.5 bg-white/95 rounded-full shadow"></span>
+            <span class="eq-bar w-2.5 bg-white/95 rounded-full shadow"></span>
+            <span class="eq-bar w-2.5 bg-white/95 rounded-full shadow"></span>
+            <span class="eq-bar w-2.5 bg-white/95 rounded-full shadow"></span>
+          </div>
+          <span class="relative z-10 text-xs font-medium text-white/90 px-3 py-1 rounded-full bg-black/50 backdrop-blur-sm">स्क्रिन लकमा पनि बज्छ</span>
+        </div>
+      </div>
+
+      <div class="space-y-5 pb-4">
+        <div class="text-center space-y-1">
+          <h2 id="fullTrackTitle" class="text-lg sm:text-xl font-bold text-white truncate">गानाको नाम</h2>
+          <p id="fullTrackMeta" class="text-xs text-zinc-400 truncate">स्थानीय अडियो • अफलाइन</p>
+        </div>
+
+        <div class="space-y-1.5">
+          <input id="fullSeekSlider" type="range" min="0" max="100" value="0" step="0.1" class="seek-slider w-full" />
+          <div class="flex justify-between text-xs text-zinc-400 font-mono">
+            <span id="fullCurrentTime">0:00</span>
+            <span id="fullTotalTime">0:00</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between px-2">
+          <button id="fullShuffleBtn" type="button" class="p-2.5 rounded-full text-zinc-400 hover:text-white transition" title="Shuffle">
+            <i data-lucide="shuffle" class="w-5 h-5"></i>
+          </button>
+          <button id="fullPrevBtn" type="button" class="p-3 rounded-full text-white hover:bg-white/10 transition" title="अघिल्लो">
+            <i data-lucide="skip-back" class="w-7 h-7 fill-white"></i>
+          </button>
+          <button id="fullPlayPauseBtn" type="button" class="w-16 h-16 rounded-full bg-white text-black hover:bg-zinc-200 flex items-center justify-center shadow-xl transition" title="Play/Pause">
+            <i id="fullPlayIcon" data-lucide="play" class="w-7 h-7 fill-black ml-0.5"></i>
+          </button>
+          <button id="fullNextBtn" type="button" class="p-3 rounded-full text-white hover:bg-white/10 transition" title="अर्को">
+            <i data-lucide="skip-forward" class="w-7 h-7 fill-white"></i>
+          </button>
+          <button id="fullRepeatBtn" type="button" class="p-2.5 rounded-full text-zinc-400 hover:text-white transition relative" title="Repeat">
+            <i id="fullRepeatIcon" data-lucide="repeat" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: EDIT MEDIA DETAILS (METADATA) ==================== -->
+  <div id="editDetailsModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#1b1b1b] border border-zinc-800 rounded-2xl max-w-md w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-white">गाना / भिडियो विवरण सम्पादन</h3>
+        <button id="closeEditDetailsBtn" type="button" class="text-zinc-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form id="editDetailsForm" class="space-y-3">
+        <div>
+          <label class="block text-[11px] text-zinc-400 mb-1">शीर्षक (Title)</label>
+          <input id="editTitleInput" type="text" required class="w-full px-3 py-2 rounded-xl bg-[#0f0f0f] border border-zinc-700 text-sm text-white focus:border-[#ff0033] focus:outline-none" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[11px] text-zinc-400 mb-1">गायक / च्यानल (Artist)</label>
+            <input id="editArtistInput" type="text" placeholder="गायकको नाम" class="w-full px-3 py-2 rounded-xl bg-[#0f0f0f] border border-zinc-700 text-xs text-white focus:border-[#ff0033] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-[11px] text-zinc-400 mb-1">एल्बम / वर्ग (Album)</label>
+            <input id="editAlbumInput" type="text" placeholder="लोक गीत, आधुनिक..." class="w-full px-3 py-2 rounded-xl bg-[#0f0f0f] border border-zinc-700 text-xs text-white focus:border-[#ff0033] focus:outline-none" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-[11px] text-zinc-400 mb-1">खोज ट्यागहरू (Tags - कमा दिएर लेख्नुहोस्)</label>
+          <input id="editTagsInput" type="text" placeholder="नेपाली, लोक, भजन, यात्रा..." class="w-full px-3 py-2 rounded-xl bg-[#0f0f0f] border border-zinc-700 text-xs text-white focus:border-[#ff0033] focus:outline-none" />
+        </div>
+        <div>
+          <label class="block text-[11px] text-zinc-400 mb-1">विवरण / नोट्स (Description)</label>
+          <textarea id="editDescInput" rows="2" placeholder="गाना वा भिडियो सम्बन्धी विवरण..." class="w-full px-3 py-2 rounded-xl bg-[#0f0f0f] border border-zinc-700 text-xs text-white focus:border-[#ff0033] focus:outline-none"></textarea>
+        </div>
+        <div class="flex items-center justify-between pt-1">
+          <label class="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+            <input id="editFavCheckbox" type="checkbox" class="accent-[#ff0033] w-4 h-4" />
+            <span>मनपर्ने (Favorite) मा राख्नुहोस्</span>
+          </label>
+          <div class="flex gap-2">
+            <button id="cancelEditDetailsBtn" type="button" class="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-zinc-200">रद्द</button>
+            <button type="submit" class="px-4 py-2 rounded-xl bg-[#ff0033] hover:bg-[#e6002e] text-xs font-semibold text-white">सेभ गर्नुहोस्</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: CREATE PLAYLIST ==================== -->
+  <div id="createPlaylistModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#1b1b1b] border border-zinc-800 rounded-2xl max-w-sm w-full p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-white">नयाँ प्लेलिस्ट बनाउनुहोस्</h3>
+        <button id="closeCreatePlModalBtn" type="button" class="text-zinc-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form id="createPlaylistForm" class="space-y-3">
+        <input
+          id="newPlaylistNameInput"
+          type="text"
+          required
+          maxlength="60"
+          placeholder="प्लेलिस्टको नाम (जस्तै: नेपाली लोक गीत)"
+          class="w-full px-3.5 py-2.5 rounded-xl bg-[#0f0f0f] border border-zinc-700 focus:border-[#ff0033] focus:outline-none text-sm text-white"
+        />
+        <div class="flex justify-end gap-2">
+          <button id="cancelCreatePlBtn" type="button" class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-zinc-200">रद्द गर्नुहोस्</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-[#ff0033] hover:bg-[#e6002e] text-xs font-semibold text-white">बनाउनुहोस्</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: ADD TO PLAYLIST ==================== -->
+  <div id="addToPlaylistModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#1b1b1b] border border-zinc-800 rounded-2xl max-w-sm w-full p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-white">प्लेलिस्टमा थप्नुहोस्</h3>
+        <button id="closeAddToPlModalBtn" type="button" class="text-zinc-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <p id="addToPlItemLabel" class="text-xs text-zinc-400 truncate"></p>
+      <div id="addToPlList" class="space-y-2 max-h-60 overflow-y-auto"></div>
+      <button id="quickNewPlFromAddBtn" type="button" class="w-full py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-white flex items-center justify-center gap-1.5">
+        <i data-lucide="plus" class="w-4 h-4"></i>
+        <span>नयाँ प्लेलिस्ट बनाउनुहोस्</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL: CONFIRMATION ==================== -->
+  <div id="confirmModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#1b1b1b] border border-zinc-800 rounded-2xl max-w-sm w-full p-5 space-y-4">
+      <h3 id="confirmTitle" class="text-base font-bold text-white">पुष्टि गर्नुहोस्</h3>
+      <p id="confirmMessage" class="text-xs text-zinc-300 leading-relaxed"></p>
+      <div class="flex justify-end gap-2">
+        <button id="confirmCancelBtn" type="button" class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-zinc-200">रद्द गर्नुहोस्</button>
+        <button id="confirmOkBtn" type="button" class="px-4 py-2 rounded-xl bg-[#ff0033] hover:bg-[#e6002e] text-xs font-semibold text-white">निश्चित छ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toastContainer" class="fixed top-16 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      // ================= SAFE STORAGE HELPERS =================
+      const STORAGE_KEYS = {
+        API_KEY: 'sangeettube_yt_api_key',
+        SAVED_YT: 'sangeettube_saved_yt',
+        PLAYLISTS: 'sangeettube_playlists'
+      };
+
+      function lsGet(key, fallback) {
+        try {
+          const raw = localStorage.getItem(key);
+          return raw ? JSON.parse(raw) : fallback;
+        } catch (e) {
+          return fallback;
+        }
+      }
+
+      function lsSet(key, value) {
+        try {
+          localStorage.setItem(key, JSON.stringify(value));
+        } catch (e) {
+          // Storage full or restricted
+        }
+      }
+
+      // ================= INDEXEDDB v2 FOR OFFLINE AUDIO + VIDEO + METADATA =================
+      const DB_NAME = 'SangeetTubeOfflineDB';
+      const DB_VERSION = 2;
+      const STORE_TRACKS = 'tracks';
+      let dbInstance = null;
+
+      function openDB() {
+        return new Promise((resolve, reject) => {
+          if (dbInstance) return resolve(dbInstance);
+          if (!('indexedDB' in window)) {
+            return reject(new Error('IndexedDB उपलब्ध छैन'));
+          }
+          const req = indexedDB.open(DB_NAME, DB_VERSION);
+          req.onupgradeneeded = (ev) => {
+            const db = ev.target.result;
+            if (!db.objectStoreNames.contains(STORE_TRACKS)) {
+              db.createObjectStore(STORE_TRACKS, { keyPath: 'id' });
+            }
+          };
+          req.onsuccess = (ev) => {
+            dbInstance = ev.target.result;
+            resolve(dbInstance);
+          };
+          req.onerror = () => reject(req.error || new Error('DB खोल्न सकिएन'));
+        });
+      }
+
+      async function dbGetAllTracks() {
+        try {
+          const db = await openDB();
+          return await new Promise((resolve, reject) => {
+            const tx = db.transaction(STORE_TRACKS, 'readonly');
+            const req = tx.objectStore(STORE_TRACKS).getAll();
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror = () => reject(req.error);
+          });
+        } catch (e) {
+          return [];
+        }
+      }
+
+      async function dbPutTrack(track) {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_TRACKS, 'readwrite');
+          tx.objectStore(STORE_TRACKS).put(track);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      }
+
+      async function dbDeleteTrack(id) {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_TRACKS, 'readwrite');
+          tx.objectStore(STORE_TRACKS).delete(id);
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      }
+
+      async function dbClearTracks() {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_TRACKS, 'readwrite');
+          tx.objectStore(STORE_TRACKS).clear();
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      }
+
+      // ================= APP STATE =================
+      const state = {
+        activeTab: 'youtube',
+        searchScope: 'both', // 'both' | 'offline'
+        offlineFilter: 'all', // 'all' | 'audio' | 'video' | 'favorite'
+        apiKey: lsGet(STORAGE_KEYS.API_KEY, ''),
+        savedYt: lsGet(STORAGE_KEYS.SAVED_YT, []),
+        playlists: lsGet(STORAGE_KEYS.PLAYLISTS, []),
+        searchResults: [],
+        currentYt: null,
+        useNoCookieEmbed: true,
+        offlineTracks: [],
+        queue: [],
+        queueIndex: -1,
+        currentTrackId: null,
+        currentObjectUrl: null,
+        currentVideoTrackId: null,
+        currentVideoObjectUrl: null,
+        isPlaying: false,
+        shuffle: false,
+        repeatMode: 'off',
+        sleepMinutes: 0,
+        sleepEndTime: null,
+        sleepInterval: null,
+        activePlaylistId: null,
+        pendingPlaylistItem: null,
+        editingItem: null, // { kind: 'offline'|'yt', id }
+        confirmCallback: null
+      };
+
+      // ================= DOM REFERENCES =================
+      const audioEl = document.getElementById('offlineAudio');
+      const videoEl = document.getElementById('offlineVideoEl');
+      const views = {
+        youtube: document.getElementById('view-youtube'),
+        offline: document.getElementById('view-offline'),
+        playlists: document.getElementById('view-playlists'),
+        settings: document.getElementById('view-settings')
+      };
+
+      // ================= UTILITIES =================
+      function showToast(msg, type = 'info') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        const colors = {
+          info: 'bg-zinc-900 border-zinc-700 text-zinc-100',
+          success: 'bg-emerald-950/95 border-emerald-700 text-emerald-100',
+          error: 'bg-red-950/95 border-red-700 text-red-100'
+        };
+        toast.className = `pointer-events-auto px-4 py-2.5 rounded-xl border text-xs font-medium shadow-xl transition-all duration-300 ${colors[type] || colors.info}`;
+        toast.textContent = msg;
+        container.appendChild(toast);
+        setTimeout(() => {
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateY(-6px)';
+          setTimeout(() => toast.remove(), 300);
+        }, 3200);
+      }
+
+      function formatTime(sec) {
+        if (!Number.isFinite(sec) || sec < 0) return '0:00';
+        const m = Math.floor(sec / 60);
+        const s = Math.floor(sec % 60);
+        return `${m}:${s < 10 ? '0' : ''}${s}`;
+      }
+
+      function formatSize(bytes) {
+        if (!bytes) return '0 MB';
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+      }
+
+      function escapeHtml(str) {
+        return String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function refreshIcons() {
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+          window.lucide.createIcons();
+        }
+      }
+
+      function parseYouTubeInput(raw) {
+        const text = (raw || '').trim();
+        if (!text) return null;
+        if (/^[a-zA-Z0-9_-]{11}$/.test(text)) {
+          return { type: 'video', id: text };
+        }
+        try {
+          const urlStr = text.startsWith('http') ? text : `https://${text}`;
+          const url = new URL(urlStr);
+          const host = url.hostname.replace(/^www\./, '');
+          if (host === 'youtu.be') {
+            const vid = url.pathname.slice(1).split('/')[0];
+            if (vid && /^[a-zA-Z0-9_-]{11}$/.test(vid)) return { type: 'video', id: vid };
+          }
+          if (host.includes('youtube.com') || host.includes('youtube-nocookie.com')) {
+            const v = url.searchParams.get('v');
+            const list = url.searchParams.get('list');
+            if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return { type: 'video', id: v };
+            if (url.pathname.startsWith('/shorts/')) {
+              const sid = url.pathname.split('/')[2];
+              if (sid && /^[a-zA-Z0-9_-]{11}$/.test(sid)) return { type: 'video', id: sid };
+            }
+            if (url.pathname.startsWith('/embed/')) {
+              const eid = url.pathname.split('/')[2];
+              if (eid && /^[a-zA-Z0-9_-]{11}$/.test(eid)) return { type: 'video', id: eid };
+            }
+            if (list) return { type: 'playlist', id: list };
+          }
+        } catch (e) {
+          // Treat as search query
+        }
+        return { type: 'query', query: text };
+      }
+
+      // ================= REAL ID3v2 TAG PARSER (MP3 METADATA) =================
+      async function extractID3Tags(file) {
+        const result = { title: '', artist: '', album: '' };
+        try {
+          const slice = file.slice(0, 65536);
+          const buf = await slice.arrayBuffer();
+          const view = new DataView(buf);
+          if (buf.byteLength < 10) return result;
+          // Check "ID3" header
+          if (view.getUint8(0) !== 0x49 || view.getUint8(1) !== 0x44 || view.getUint8(2) !== 0x33) {
+            return result;
+          }
+          const version = view.getUint8(3);
+          const tagSize =
+            ((view.getUint8(6) & 0x7f) << 21) |
+            ((view.getUint8(7) & 0x7f) << 14) |
+            ((view.getUint8(8) & 0x7f) << 7) |
+            (view.getUint8(9) & 0x7f);
+          let offset = 10;
+          const end = Math.min(buf.byteLength, 10 + tagSize);
+
+          while (offset + 10 < end) {
+            const idBytes = new Uint8Array(buf, offset, 4);
+            const frameId = String.fromCharCode(...idBytes);
+            if (!/^[A-Z0-9]{4}$/.test(frameId)) break;
+
+            let frameSize;
+            if (version === 4) {
+              frameSize =
+                ((view.getUint8(offset + 4) & 0x7f) << 21) |
+                ((view.getUint8(offset + 5) & 0x7f) << 14) |
+                ((view.getUint8(offset + 6) & 0x7f) << 7) |
+                (view.getUint8(offset + 7) & 0x7f);
+            } else {
+              frameSize = view.getUint32(offset + 4, false);
+            }
+            if (frameSize <= 1 || offset + 10 + frameSize > end) break;
+
+            if (frameId === 'TIT2' || frameId === 'TPE1' || frameId === 'TALB') {
+              const encoding = view.getUint8(offset + 10);
+              const textBytes = new Uint8Array(buf, offset + 11, frameSize - 1);
+              let decoderName = 'utf-8';
+              if (encoding === 0) decoderName = 'iso-8859-1';
+              else if (encoding === 1 || encoding === 2) decoderName = 'utf-16';
+              try {
+                const decoded = new TextDecoder(decoderName).decode(textBytes).replace(/\0/g, '').trim();
+                if (frameId === 'TIT2' && decoded) result.title = decoded;
+                if (frameId === 'TPE1' && decoded) result.artist = decoded;
+                if (frameId === 'TALB' && decoded) result.album = decoded;
+              } catch (e) {
+                // fallback ignore
+              }
+            }
+            offset += 10 + frameSize;
+          }
+        } catch (e) {
+          // ignore malformed ID3
+        }
+        return result;
+      }
+
+      // ================= VIDEO THUMBNAIL & METADATA EXTRACTOR =================
+      function extractMediaMeta(file, isVideo) {
+        return new Promise((resolve) => {
+          const url = URL.createObjectURL(file);
+          if (!isVideo) {
+            const tempAudio = document.createElement('audio');
+            tempAudio.preload = 'metadata';
+            tempAudio.onloadedmetadata = () => {
+              const duration = Number.isFinite(tempAudio.duration) ? tempAudio.duration : 0;
+              URL.revokeObjectURL(url);
+              resolve({ duration, thumbnail: '', resolution: '' });
+            };
+            tempAudio.onerror = () => {
+              URL.revokeObjectURL(url);
+              resolve({ duration: 0, thumbnail: '', resolution: '' });
+            };
+            tempAudio.src = url;
+            return;
+          }
+
+          const tempVideo = document.createElement('video');
+          tempVideo.muted = true;
+          tempVideo.preload = 'metadata';
+          tempVideo.playsInline = true;
+          let settled = false;
+
+          const finish = (duration, thumbnail, resolution) => {
+            if (settled) return;
+            settled = true;
+            URL.revokeObjectURL(url);
+            resolve({ duration, thumbnail, resolution });
+          };
+
+          tempVideo.onloadedmetadata = () => {
+            const dur = Number.isFinite(tempVideo.duration) ? tempVideo.duration : 0;
+            const res = tempVideo.videoWidth && tempVideo.videoHeight ? `${tempVideo.videoWidth}×${tempVideo.videoHeight}` : '';
+            tempVideo.currentTime = Math.min(2, dur > 0 ? dur * 0.15 : 0);
+            tempVideo.onseeked = () => {
+              let thumb = '';
+              try {
+                const canvas = document.createElement('canvas');
+                const w = 320;
+                const h = Math.round((tempVideo.videoHeight / (tempVideo.videoWidth || 16)) * w) || 180;
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(tempVideo, 0, 0, w, h);
+                thumb = canvas.toDataURL('image/jpeg', 0.72);
+              } catch (e) {
+                thumb = '';
+              }
+              finish(dur, thumb, res);
+            };
+            setTimeout(() => finish(dur, '', res), 2500);
+          };
+          tempVideo.onerror = () => finish(0, '', '');
+          tempVideo.src = url;
+        });
+      }
+
+      // ================= NETWORK STATUS =================
+      function updateNetworkUI() {
+        const online = navigator.onLine;
+        const badge = document.getElementById('networkBadge');
+        const dot = document.getElementById('networkDot');
+        const text = document.getElementById('networkText');
+        if (online) {
+          badge.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/25';
+          dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+          text.textContent = 'अनलाइन';
+        } else {
+          badge.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30';
+          dot.className = 'w-2 h-2 rounded-full bg-amber-400';
+          text.textContent = 'अफलाइन मोड';
+        }
+      }
+
+      // ================= NAVIGATION =================
+      function switchTab(tab) {
+        state.activeTab = tab;
+        Object.keys(views).forEach((k) => {
+          views[k].classList.toggle('hidden', k !== tab);
+        });
+
+        document.querySelectorAll('.nav-btn').forEach((btn) => {
+          const active = btn.dataset.nav === tab;
+          btn.className = `nav-btn flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
+            active ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+          }`;
+        });
+
+        document.querySelectorAll('.nav-btn-mobile').forEach((btn) => {
+          const active = btn.dataset.nav === tab;
+          btn.className = `nav-btn-mobile flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition ${
+            active ? 'text-[#ff0033]' : 'text-zinc-400 hover:text-zinc-200'
+          }`;
+        });
+
+        if (tab === 'playlists') renderPlaylists();
+        else if (tab === 'settings') renderStorageStats();
+        refreshIcons();
+      }
+
+      // ================= UNIFIED OFFLINE + ONLINE SEARCH =================
+      function updateSearchScopeUI() {
+        const bothBtn = document.getElementById('searchScopeOnlineBtn');
+        const offBtn = document.getElementById('searchScopeOfflineBtn');
+        if (state.searchScope === 'both') {
+          bothBtn.className = 'px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#ff0033] text-white transition';
+          offBtn.className = 'px-2.5 py-1 rounded-full text-[11px] font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition';
+        } else {
+          bothBtn.className = 'px-2.5 py-1 rounded-full text-[11px] font-medium bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition';
+          offBtn.className = 'px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-600 text-white transition';
+        }
+      }
+
+      function searchOfflineVault(query) {
+        const q = (query || '').trim().toLowerCase();
+        const sec = document.getElementById('unifiedOfflineResultsSection');
+        const grid = document.getElementById('unifiedOfflineGrid');
+        const countEl = document.getElementById('unifiedOfflineCount');
+        if (!q) {
+          sec.classList.add('hidden');
+          grid.innerHTML = '';
+          return;
+        }
+
+        const matchedMedia = state.offlineTracks.filter((t) => {
+          const hay = `${t.title} ${t.artist || ''} ${t.album || ''} ${t.tags || ''} ${t.description || ''} ${t.fileName || ''}`.toLowerCase();
+          return hay.includes(q);
+        });
+
+        const matchedYt = state.savedYt.filter((y) => {
+          const hay = `${y.title} ${y.channel || ''} ${y.tags || ''} ${y.description || ''}`.toLowerCase();
+          return hay.includes(q);
+        });
+
+        const total = matchedMedia.length + matchedYt.length;
+        countEl.textContent = String(total);
+        sec.classList.remove('hidden');
+
+        if (!total) {
+          grid.innerHTML = `<div class="p-4 rounded-xl bg-[#161616] border border-zinc-800 text-xs text-zinc-400">अफलाइन भल्ट वा सेभ विवरणमा "${escapeHtml(query)}" भेटिएन।</div>`;
+          return;
+        }
+
+        const mediaHtml = matchedMedia.map((t) => `
+          <div class="flex items-center gap-3 p-3 rounded-xl bg-[#181818] border border-zinc-800">
+            <button type="button" data-uni-play-off="${escapeHtml(t.id)}" class="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 flex items-center justify-center shrink-0 overflow-hidden">
+              ${t.thumbnail ? `<img src="${t.thumbnail}" alt="" class="w-full h-full object-cover" />` : `<i data-lucide="${t.mediaType === 'video' ? 'video' : 'headphones'}" class="w-5 h-5"></i>`}
+            </button>
+            <div class="min-w-0 flex-1">
+              <div class="text-sm font-semibold text-white truncate">${escapeHtml(t.title)}</div>
+              <div class="text-[11px] text-zinc-400 truncate">
+                ${escapeHtml(t.artist || 'स्थानीय फाइल')} • ${t.mediaType === 'video' ? 'अफलाइन भिडियो' : 'अफलाइन अडियो'} • ${formatTime(t.duration)}
+              </div>
+              ${t.tags ? `<div class="text-[10px] text-emerald-400/90 truncate mt-0.5">#${escapeHtml(t.tags)}</div>` : ''}
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button type="button" data-uni-play-off="${escapeHtml(t.id)}" class="px-2.5 py-1.5 rounded-lg bg-[#ff0033] text-white text-xs font-medium">बजाउनुहोस्</button>
+              <button type="button" data-uni-dl-off="${escapeHtml(t.id)}" class="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300" title="फाइल रिट्राइभ (डाउनलोड)">
+                <i data-lucide="download" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        `).join('');
+
+        const ytHtml = matchedYt.map((y) => `
+          <div class="flex items-center gap-3 p-3 rounded-xl bg-[#181818] border border-zinc-800">
+            <div class="w-10 h-10 rounded-xl bg-red-500/15 text-[#ff4d6d] flex items-center justify-center shrink-0">
+              <i data-lucide="youtube" class="w-5 h-5"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="text-sm font-semibold text-white truncate">${escapeHtml(y.title)}</div>
+              <div class="text-[11px] text-zinc-400 truncate">${escapeHtml(y.channel || 'YouTube')} • सेभ युट्युब विवरण</div>
+            </div>
+            <button type="button" data-uni-play-yt="${escapeHtml(y.id)}" class="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-medium shrink-0">बजाउनुहोस्</button>
+          </div>
+        `).join('');
+
+        grid.innerHTML = mediaHtml + ytHtml;
+
+        grid.querySelectorAll('[data-uni-play-off]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const trk = state.offlineTracks.find((x) => x.id === btn.dataset.uniPlayOff);
+            if (!trk) return;
+            if (trk.mediaType === 'video') {
+              playOfflineVideo(trk);
+            } else {
+              playOfflineQueue(state.offlineTracks.filter((x) => x.mediaType !== 'video').map((x) => x.id),
+                state.offlineTracks.filter((x) => x.mediaType !== 'video').findIndex((x) => x.id === trk.id));
+            }
+          });
+        });
+
+        grid.querySelectorAll('[data-uni-dl-off]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const trk = state.offlineTracks.find((x) => x.id === btn.dataset.uniDlOff);
+            if (trk) retrieveOfflineFile(trk);
+          });
+        });
+
+        grid.querySelectorAll('[data-uni-play-yt]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const item = state.savedYt.find((x) => x.id === btn.dataset.uniPlayYt);
+            if (item) playYouTubeItem(item);
+          });
+        });
+
+        refreshIcons();
+      }
+
+      // ================= YOUTUBE PLAYBACK, OEMBED METADATA & API SEARCH =================
+      function updateApiStatusUI() {
+        const pill = document.getElementById('apiStatusPill');
+        const banner = document.getElementById('apiKeyBanner');
+        const input = document.getElementById('apiKeyInput');
+        if (input) input.value = state.apiKey || '';
+        if (state.apiKey) {
+          pill.textContent = 'YouTube API सक्रिय';
+          pill.className = 'text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
+          banner.classList.add('hidden');
+        } else {
+          pill.textContent = 'URL मोड';
+          pill.className = 'text-[11px] px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400';
+          banner.classList.remove('hidden');
+        }
+      }
+
+      async function fetchYouTubeOEmbed(videoId) {
+        try {
+          const url = `https://www.youtube.com/oembed?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`)}&format=json`;
+          const res = await fetch(url);
+          if (!res.ok) return null;
+          const data = await res.json();
+          return {
+            title: data.title || '',
+            channel: data.author_name || '',
+            thumb: data.thumbnail_url || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+          };
+        } catch (e) {
+          return null;
+        }
+      }
+
+      async function playYouTubeItem(item) {
+        if (!navigator.onLine) {
+          showToast('नेटवर्क छैन! अफलाइन भल्टबाट गाना वा भिडियो बजाउनुहोस्।', 'error');
+          return;
+        }
+        if (!audioEl.paused) audioEl.pause();
+        if (!videoEl.paused) videoEl.pause();
+
+        state.currentYt = { ...item };
+        const card = document.getElementById('ytPlayerCard');
+        const iframe = document.getElementById('ytIframe');
+        const titleEl = document.getElementById('ytNowTitle');
+        const channelEl = document.getElementById('ytNowChannel');
+
+        const host = state.useNoCookieEmbed ? 'https://www.youtube-nocookie.com' : 'https://www.youtube.com';
+        const validOrigin = (window.location.protocol === 'https:' || window.location.protocol === 'http:') && window.location.origin && window.location.origin !== 'null';
+        const originParam = validOrigin ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
+        iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+        if (item.isPlaylist) {
+          iframe.src = `${host}/embed/videoseries?list=${encodeURIComponent(item.id)}&autoplay=1&rel=0${originParam}`;
+        } else {
+          iframe.src = `${host}/embed/${encodeURIComponent(item.id)}?autoplay=1&rel=0&playsinline=1${originParam}`;
+        }
+        const extLink = document.getElementById('openYtExternalLink');
+        if (extLink) {
+          extLink.href = item.isPlaylist
+            ? `https://www.youtube.com/playlist?list=${encodeURIComponent(item.id)}`
+            : `https://www.youtube.com/watch?v=${encodeURIComponent(item.id)}`;
+        }
+        const warnEl = document.getElementById('embedOriginWarning');
+        if (warnEl) {
+          const isRestrictedEnv = !validOrigin || window.self !== window.top;
+          warnEl.classList.toggle('hidden', !isRestrictedEnv);
+        }
+        titleEl.textContent = item.title || `YouTube (${item.id})`;
+        channelEl.textContent = item.channel || (item.isPlaylist ? 'YouTube Playlist' : 'YouTube Video');
+        card.classList.remove('hidden');
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        switchTab('youtube');
+
+        // Auto-fetch real YouTube title & channel via oEmbed if generic
+        if (!item.isPlaylist && (!item.title || item.title.startsWith('YouTube Video ('))) {
+          const meta = await fetchYouTubeOEmbed(item.id);
+          if (meta && state.currentYt && state.currentYt.id === item.id) {
+            state.currentYt.title = meta.title || state.currentYt.title;
+            state.currentYt.channel = meta.channel || state.currentYt.channel;
+            state.currentYt.thumb = meta.thumb || state.currentYt.thumb;
+            titleEl.textContent = state.currentYt.title;
+            channelEl.textContent = state.currentYt.channel;
+          }
+        }
+      }
+
+      async function searchYouTubeAPI(query) {
+        if (!navigator.onLine) {
+          showToast('अफलाइन मोड: अफलाइन भल्टमा मात्र खोजियो।', 'info');
+          return;
+        }
+        if (!state.apiKey) {
+          showToast('अनलाइन युट्युब सर्चको लागि सेटिङमा YouTube API Key राख्नुहोस् (अफलाइन भल्टको नतिजा माथि देखाइएको छ)।', 'info');
+          return;
+        }
+
+        const sec = document.getElementById('ytSearchResultsSection');
+        const grid = document.getElementById('ytSearchResultsGrid');
+        sec.classList.remove('hidden');
+        grid.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-zinc-400">युट्युबमा खोजिँदैछ...</div>`;
+
+        try {
+          const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=9&q=${encodeURIComponent(query)}&key=${encodeURIComponent(state.apiKey)}`;
+          const res = await fetch(url);
+          const data = await res.json();
+          if (!res.ok || data.error) {
+            throw new Error(data.error?.message || 'API अनुरोध असफल भयो');
+          }
+          state.searchResults = (data.items || []).map((it) => ({
+            id: it.id.videoId,
+            title: it.snippet.title,
+            channel: it.snippet.channelTitle,
+            description: it.snippet.description || '',
+            thumb: it.snippet.thumbnails?.medium?.url || `https://i.ytimg.com/vi/${it.id.videoId}/hqdefault.jpg`,
+            isPlaylist: false
+          }));
+          renderSearchResults();
+        } catch (err) {
+          grid.innerHTML = `<div class="col-span-full p-4 rounded-xl bg-red-500/10 border border-red-500/25 text-xs text-red-300">अनलाइन खोज असफल: ${escapeHtml(err.message)}।</div>`;
+        }
+      }
+
+      function renderSearchResults() {
+        const sec = document.getElementById('ytSearchResultsSection');
+        const grid = document.getElementById('ytSearchResultsGrid');
+        if (!state.searchResults.length) {
+          sec.classList.add('hidden');
+          grid.innerHTML = '';
+          return;
+        }
+        sec.classList.remove('hidden');
+        grid.innerHTML = state.searchResults.map((item, idx) => `
+          <div class="bg-[#181818] border border-zinc-800 rounded-xl overflow-hidden flex flex-col">
+            <button type="button" data-play-search="${idx}" class="relative aspect-video bg-black group text-left">
+              <img src="${escapeHtml(item.thumb)}" alt="${escapeHtml(item.title)}" class="w-full h-full object-cover group-hover:opacity-80 transition" />
+              <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition bg-black/35">
+                <div class="w-11 h-11 rounded-full bg-[#ff0033] flex items-center justify-center">
+                  <i data-lucide="play" class="w-5 h-5 text-white fill-white ml-0.5"></i>
+                </div>
+              </div>
+            </button>
+            <div class="p-3 flex-1 flex flex-col justify-between gap-2">
+              <div>
+                <h3 class="text-xs font-semibold text-white line-clamp-2">${escapeHtml(item.title)}</h3>
+                <p class="text-[11px] text-zinc-400 mt-0.5 truncate">${escapeHtml(item.channel)}</p>
+              </div>
+              <div class="flex items-center gap-1.5 pt-1">
+                <button type="button" data-play-search="${idx}" class="flex-1 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-white">बजाउनुहोस्</button>
+                <button type="button" data-save-search="${idx}" class="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300" title="विवरण सेभ गर्नुहोस्">
+                  <i data-lucide="bookmark-plus" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        grid.querySelectorAll('[data-play-search]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const item = state.searchResults[Number(btn.dataset.playSearch)];
+            if (item) playYouTubeItem(item);
+          });
+        });
+        grid.querySelectorAll('[data-save-search]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const item = state.searchResults[Number(btn.dataset.saveSearch)];
+            if (item) saveYouTubeToLibrary(item);
+          });
+        });
+        refreshIcons();
+      }
+
+      function saveYouTubeToLibrary(item) {
+        if (!item || !item.id) return;
+        if (state.savedYt.some((x) => x.id === item.id)) {
+          showToast('यो भिडियो पहिले नै लाइब्रेरीमा सेभ छ।', 'info');
+          return;
+        }
+        state.savedYt.unshift({
+          id: item.id,
+          title: item.title || `YouTube (${item.id})`,
+          channel: item.channel || 'YouTube',
+          tags: item.tags || '',
+          description: item.description || '',
+          isPlaylist: !!item.isPlaylist,
+          thumb: item.thumb || (item.isPlaylist ? '' : `https://i.ytimg.com/vi/${item.id}/hqdefault.jpg`),
+          addedAt: Date.now()
+        });
+        lsSet(STORAGE_KEYS.SAVED_YT, state.savedYt);
+        renderSavedYt();
+        renderStorageStats();
+        showToast('युट्युब विवरण अफलाइन खोज्न मिल्ने गरी सेभ भयो!', 'success');
+      }
+
+      function removeSavedYt(id) {
+        state.savedYt = state.savedYt.filter((x) => x.id !== id);
+        lsSet(STORAGE_KEYS.SAVED_YT, state.savedYt);
+        renderSavedYt();
+        renderStorageStats();
+        showToast('लाइब्रेरीबाट हटाइयो।', 'info');
+      }
+
+      function renderSavedYt() {
+        const countEl = document.getElementById('savedYtCount');
+        const emptyEl = document.getElementById('savedYtEmpty');
+        const grid = document.getElementById('savedYtGrid');
+        countEl.textContent = String(state.savedYt.length);
+
+        if (!state.savedYt.length) {
+          emptyEl.classList.remove('hidden');
+          grid.innerHTML = '';
+          return;
+        }
+        emptyEl.classList.add('hidden');
+        grid.innerHTML = state.savedYt.map((item) => `
+          <div class="bg-[#181818] border border-zinc-800 rounded-xl overflow-hidden flex flex-col">
+            <button type="button" data-play-saved="${escapeHtml(item.id)}" class="relative aspect-video bg-zinc-900 group flex items-center justify-center overflow-hidden">
+              ${item.thumb
+                ? `<img src="${escapeHtml(item.thumb)}" alt="${escapeHtml(item.title)}" class="w-full h-full object-cover group-hover:opacity-80 transition" />`
+                : `<div class="flex flex-col items-center gap-1 text-zinc-400"><i data-lucide="list-video" class="w-8 h-8 text-[#ff0033]"></i><span class="text-[11px]">YouTube Playlist</span></div>`
+              }
+              <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition bg-black/40">
+                <div class="w-11 h-11 rounded-full bg-[#ff0033] flex items-center justify-center">
+                  <i data-lucide="play" class="w-5 h-5 text-white fill-white ml-0.5"></i>
+                </div>
+              </div>
+            </button>
+            <div class="p-3 flex-1 flex flex-col justify-between gap-2">
+              <div>
+                <h3 class="text-xs font-semibold text-white line-clamp-2">${escapeHtml(item.title)}</h3>
+                <p class="text-[11px] text-zinc-400 mt-0.5 truncate">${escapeHtml(item.channel)}</p>
+                ${item.tags ? `<p class="text-[10px] text-emerald-400/90 truncate mt-0.5">#${escapeHtml(item.tags)}</p>` : ''}
+              </div>
+              <div class="flex items-center gap-1.5 pt-1">
+                <button type="button" data-play-saved="${escapeHtml(item.id)}" class="flex-1 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-white">बजाउनुहोस्</button>
+                <button type="button" data-edit-yt="${escapeHtml(item.id)}" class="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300" title="विवरण सम्पादन">
+                  <i data-lucide="pencil" class="w-4 h-4"></i>
+                </button>
+                <button type="button" data-pl-saved="${escapeHtml(item.id)}" class="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300" title="प्लेलिस्टमा थप्नुहोस्">
+                  <i data-lucide="list-plus" class="w-4 h-4"></i>
+                </button>
+                <button type="button" data-del-saved="${escapeHtml(item.id)}" class="p-1.5 rounded-lg bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400" title="हटाउनुहोस्">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        grid.querySelectorAll('[data-play-saved]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const item = state.savedYt.find((x) => x.id === btn.dataset.playSaved);
+            if (item) playYouTubeItem(item);
+          });
+        });
+        grid.querySelectorAll('[data-edit-yt]').forEach((btn) => {
+          btn.addEventListener('click', () => openEditDetailsModal('yt', btn.dataset.editYt));
+        });
+        grid.querySelectorAll('[data-pl-saved]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const item = state.savedYt.find((x) => x.id === btn.dataset.plSaved);
+            if (item) openAddToPlaylistModal({ kind: 'yt', id: item.id, title: item.title });
+          });
+        });
+        grid.querySelectorAll('[data-del-saved]').forEach((btn) => {
+          btn.addEventListener('click', () => removeSavedYt(btn.dataset.delSaved));
+        });
+        refreshIcons();
+      }
+
+      // ================= OFFLINE VAULT IMPORT, PLAYBACK & RETRIEVE =================
+      async function importAudioFiles(fileList) {
+        const files = Array.from(fileList || []);
+        if (!files.length) return;
+        let added = 0;
+
+        for (const file of files) {
+          try {
+            const isVideo = (file.type && file.type.startsWith('video/')) || /\.(mp4|webm|mkv|mov|m4v)$/i.test(file.name);
+            const [mediaMeta, id3] = await Promise.all([
+              extractMediaMeta(file, isVideo),
+              isVideo ? Promise.resolve({ title: '', artist: '', album: '' }) : extractID3Tags(file)
+            ]);
+            const fallbackTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').trim() || file.name;
+            const track = {
+              id: `trk_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+              title: id3.title || fallbackTitle,
+              artist: id3.artist || '',
+              album: id3.album || '',
+              tags: isVideo ? 'भिडियो' : 'अडियो',
+              description: '',
+              favorite: false,
+              mediaType: isVideo ? 'video' : 'audio',
+              resolution: mediaMeta.resolution || '',
+              thumbnail: mediaMeta.thumbnail || '',
+              fileName: file.name,
+              size: file.size,
+              type: file.type || (isVideo ? 'video/mp4' : 'audio/mpeg'),
+              duration: mediaMeta.duration || 0,
+              addedAt: Date.now(),
+              blob: file
+            };
+            await dbPutTrack(track);
+            state.offlineTracks.unshift(track);
+            added++;
+          } catch (e) {
+            showToast(`${file.name} सेभ गर्न सकिएन।`, 'error');
+          }
+        }
+
+        if (added > 0) {
+          renderOfflineTracks();
+          renderStorageStats();
+          showToast(`${added} वटा फाइल र विवरण अफलाइन भल्टमा सेभ भयो!`, 'success');
+        }
+      }
+
+      function retrieveOfflineFile(track) {
+        if (!track || !track.blob) {
+          showToast('फाइल उपलब्ध छैन।', 'error');
+          return;
+        }
+        const url = URL.createObjectURL(track.blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = track.fileName || `${track.title}.${track.mediaType === 'video' ? 'mp4' : 'mp3'}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        showToast(`"${track.title}" रिट्राइभ (डाउनलोड) सुरु भयो!`, 'success');
+      }
+
+      function getFilteredOfflineTracks() {
+        const query = (document.getElementById('offlineSearchInput').value || '').trim().toLowerCase();
+        const sort = document.getElementById('offlineSortSelect').value;
+        let list = state.offlineTracks.slice();
+
+        if (state.offlineFilter === 'audio') list = list.filter((t) => t.mediaType !== 'video');
+        else if (state.offlineFilter === 'video') list = list.filter((t) => t.mediaType === 'video');
+        else if (state.offlineFilter === 'favorite') list = list.filter((t) => !!t.favorite);
+
+        if (query) {
+          list = list.filter((t) => {
+            const hay = `${t.title} ${t.artist || ''} ${t.album || ''} ${t.tags || ''} ${t.description || ''} ${t.fileName || ''}`.toLowerCase();
+            return hay.includes(query);
+          });
+        }
+
+        if (sort === 'name') list.sort((a, b) => a.title.localeCompare(b.title));
+        else if (sort === 'artist') list.sort((a, b) => (a.artist || 'zzz').localeCompare(b.artist || 'zzz'));
+        else if (sort === 'duration') list.sort((a, b) => (b.duration || 0) - (a.duration || 0));
+        else list.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+        return list;
+      }
+
+      function renderOfflineTracks() {
+        const listEl = document.getElementById('offlineTrackList');
+        const emptyEl = document.getElementById('offlineEmpty');
+        document.getElementById('sidebarOfflineCount').textContent = String(state.offlineTracks.length);
+
+        const filtered = getFilteredOfflineTracks();
+        if (!state.offlineTracks.length) {
+          emptyEl.classList.remove('hidden');
+          listEl.innerHTML = '';
+          return;
+        }
+        emptyEl.classList.add('hidden');
+
+        if (!filtered.length) {
+          listEl.innerHTML = `<div class="p-6 text-center text-xs text-zinc-400 bg-[#161616] rounded-xl border border-zinc-800">खोजिएको गाना वा भिडियो भेटिएन।</div>`;
+          return;
+        }
+
+        listEl.innerHTML = filtered.map((track) => {
+          const isCurrent = state.currentTrackId === track.id;
+          const isVideo = track.mediaType === 'video';
+          return `
+            <div class="flex items-center gap-3 p-3 rounded-xl border transition ${
+              isCurrent
+                ? 'bg-[#261418] border-[#ff0033]/50'
+                : 'bg-[#181818] border-zinc-800/90 hover:bg-[#202020]'
+            }">
+              <button type="button" data-play-offline="${escapeHtml(track.id)}" class="relative w-12 h-12 rounded-xl flex items-center justify-center shrink-0 overflow-hidden transition ${
+                isCurrent ? 'bg-[#ff0033] text-white' : 'bg-zinc-800 text-zinc-200 hover:bg-zinc-700'
+              }">
+                ${track.thumbnail
+                  ? `<img src="${track.thumbnail}" alt="" class="w-full h-full object-cover" /><div class="absolute inset-0 bg-black/35 flex items-center justify-center"><i data-lucide="${isCurrent && state.isPlaying ? 'pause' : 'play'}" class="w-4 h-4 text-white fill-white"></i></div>`
+                  : `<i data-lucide="${isCurrent && state.isPlaying ? 'pause' : (isVideo ? 'video' : 'play')}" class="w-4 h-4 ${isCurrent && state.isPlaying ? '' : 'fill-current'}"></i>`
+                }
+              </button>
+              <button type="button" data-play-offline="${escapeHtml(track.id)}" class="min-w-0 flex-1 text-left">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-sm font-medium ${isCurrent ? 'text-[#ff4d6d]' : 'text-white'} truncate">${escapeHtml(track.title)}</span>
+                  ${track.favorite ? '<span class="text-amber-400 text-xs shrink-0">★</span>' : ''}
+                </div>
+                <div class="text-[11px] text-zinc-400 flex flex-wrap items-center gap-1.5 mt-0.5">
+                  ${track.artist ? `<span class="text-zinc-300 truncate max-w-[140px]">${escapeHtml(track.artist)}</span><span>•</span>` : ''}
+                  <span>${formatTime(track.duration)}</span>
+                  <span>•</span>
+                  <span>${formatSize(track.size)}</span>
+                  <span class="px-1.5 py-0.2 rounded ${isVideo ? 'bg-sky-500/15 text-sky-400' : 'bg-emerald-500/15 text-emerald-400'} text-[10px]">${isVideo ? 'भिडियो' : 'अडियो'}</span>
+                </div>
+                ${track.tags || track.description ? `<div class="text-[10px] text-zinc-500 truncate mt-0.5">${track.tags ? `#${escapeHtml(track.tags)} ` : ''}${escapeHtml(track.description || '')}</div>` : ''}
+              </button>
+              <div class="flex items-center gap-0.5 shrink-0">
+                <button type="button" data-edit-offline="${escapeHtml(track.id)}" class="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition" title="विवरण सम्पादन">
+                  <i data-lucide="pencil" class="w-4 h-4"></i>
+                </button>
+                <button type="button" data-dl-offline="${escapeHtml(track.id)}" class="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-emerald-400 transition" title="फाइल रिट्राइभ (डाउनलोड)">
+                  <i data-lucide="download" class="w-4 h-4"></i>
+                </button>
+                <button type="button" data-pl-offline="${escapeHtml(track.id)}" class="p-2 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition" title="प्लेलिस्टमा थप्नुहोस्">
+                  <i data-lucide="list-plus" class="w-4 h-4"></i>
+                </button>
+                <button type="button" data-del-offline="${escapeHtml(track.id)}" class="p-2 rounded-lg hover:bg-red-500/20 text-zinc-400 hover:text-red-400 transition" title="मेटाउनुहोस्">
+                  <i data-lucide="trash-2" class="w-4 h-4"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        listEl.querySelectorAll('[data-play-offline]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const id = btn.dataset.playOffline;
+            const trk = state.offlineTracks.find((t) => t.id === id);
+            if (!trk) return;
+            if (trk.mediaType === 'video') {
+              playOfflineVideo(trk);
+              return;
+            }
+            if (state.currentTrackId === id) {
+              togglePlayPause();
+            } else {
+              const queueIds = filtered.map((t) => t.id);
+              playOfflineQueue(queueIds, queueIds.indexOf(id));
+            }
+          });
+        });
+
+        listEl.querySelectorAll('[data-edit-offline]').forEach((btn) => {
+          btn.addEventListener('click', () => openEditDetailsModal('offline', btn.dataset.editOffline));
+        });
+
+        listEl.querySelectorAll('[data-dl-offline]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const trk = state.offlineTracks.find((t) => t.id === btn.dataset.dlOffline);
+            if (trk) retrieveOfflineFile(trk);
+          });
+        });
+
+        listEl.querySelectorAll('[data-pl-offline]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const trk = state.offlineTracks.find((t) => t.id === btn.dataset.plOffline);
+            if (trk) openAddToPlaylistModal({ kind: 'offline', id: trk.id, title: trk.title });
+          });
+        });
+
+        listEl.querySelectorAll('[data-del-offline]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const id = btn.dataset.delOffline;
+            const trk = state.offlineTracks.find((t) => t.id === id);
+            openConfirm(
+              'फाइल मेटाउनुहोस्?',
+              `"${trk?.title || ''}" लाई अफलाइन भल्टबाट मेटाउन चाहनुहुन्छ?`,
+              async () => {
+                await dbDeleteTrack(id);
+                state.offlineTracks = state.offlineTracks.filter((t) => t.id !== id);
+                if (state.currentTrackId === id) {
+                  audioEl.pause();
+                  state.currentTrackId = null;
+                  state.isPlaying = false;
+                  document.getElementById('miniPlayer').classList.add('hidden');
+                }
+                if (state.currentVideoTrackId === id) {
+                  closeOfflineVideoPlayer();
+                }
+                renderOfflineTracks();
+                renderStorageStats();
+                showToast('फाइल मेटाइयो।', 'info');
+              }
+            );
+          });
+        });
+        refreshIcons();
+      }
+
+      // ================= OFFLINE VIDEO PLAYER & BG AUDIO HANDOFF =================
+      function playOfflineVideo(track) {
+        if (!track || !track.blob) return;
+        if (!audioEl.paused) audioEl.pause();
+        const ytIframe = document.getElementById('ytIframe');
+        if (ytIframe.src) {
+          ytIframe.src = '';
+          document.getElementById('ytPlayerCard').classList.add('hidden');
+        }
+
+        if (state.currentVideoObjectUrl) URL.revokeObjectURL(state.currentVideoObjectUrl);
+        state.currentVideoObjectUrl = URL.createObjectURL(track.blob);
+        state.currentVideoTrackId = track.id;
+
+        videoEl.src = state.currentVideoObjectUrl;
+        document.getElementById('offlineVideoTitle').textContent = track.title;
+        document.getElementById('offlineVideoMeta').textContent = `${track.artist || 'स्थानीय भिडियो'} • ${formatSize(track.size)} ${track.resolution ? '• ' + track.resolution : ''}`;
+        const card = document.getElementById('offlineVideoCard');
+        card.classList.remove('hidden');
+        switchTab('offline');
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        videoEl.play().catch(() => {});
+        setupMediaSession(track);
+      }
+
+      function closeOfflineVideoPlayer() {
+        videoEl.pause();
+        videoEl.removeAttribute('src');
+        videoEl.load();
+        if (state.currentVideoObjectUrl) {
+          URL.revokeObjectURL(state.currentVideoObjectUrl);
+          state.currentVideoObjectUrl = null;
+        }
+        state.currentVideoTrackId = null;
+        document.getElementById('offlineVideoCard').classList.add('hidden');
+      }
+
+      function switchVideoToBackgroundAudio() {
+        const track = state.offlineTracks.find((t) => t.id === state.currentVideoTrackId);
+        if (!track) return;
+        const resumeTime = videoEl.currentTime || 0;
+        closeOfflineVideoPlayer();
+        const queueIds = state.offlineTracks.map((t) => t.id);
+        playOfflineQueue(queueIds, queueIds.indexOf(track.id), resumeTime);
+        showToast('स्क्रिन-लक अडियो मोड सक्रिय! अब स्क्रिन अफ गर्दा पनि आवाज बज्छ।', 'success');
+      }
+
+      // ================= BACKGROUND AUDIO QUEUE ENGINE =================
+      function playOfflineQueue(trackIds, startIndex = 0, seekToSec = 0) {
+        if (!trackIds.length) {
+          showToast('बजाउनको लागि अफलाइन गाना छैन।', 'info');
+          return;
+        }
+        const ytIframe = document.getElementById('ytIframe');
+        if (ytIframe.src) {
+          ytIframe.src = '';
+          document.getElementById('ytPlayerCard').classList.add('hidden');
+        }
+        if (!videoEl.paused) closeOfflineVideoPlayer();
+
+        state.queue = trackIds.slice();
+        state.queueIndex = Math.max(0, Math.min(startIndex, state.queue.length - 1));
+        loadAndPlayCurrentQueueIndex(seekToSec);
+      }
+
+      function loadAndPlayCurrentQueueIndex(seekToSec = 0) {
+        const trackId = state.queue[state.queueIndex];
+        const track = state.offlineTracks.find((t) => t.id === trackId);
+        if (!track || !track.blob) {
+          showToast('गाना फाइल लोड गर्न सकिएन।', 'error');
+          return;
+        }
+
+        if (state.currentObjectUrl) URL.revokeObjectURL(state.currentObjectUrl);
+        state.currentObjectUrl = URL.createObjectURL(track.blob);
+        state.currentTrackId = track.id;
+        audioEl.src = state.currentObjectUrl;
+        if (seekToSec > 0) {
+          audioEl.onloadedmetadata = () => {
+            audioEl.currentTime = Math.min(seekToSec, audioEl.duration || seekToSec);
+            audioEl.onloadedmetadata = null;
+          };
+        }
+        audioEl.play().then(() => {
+          state.isPlaying = true;
+          updatePlayerUI(track);
+          setupMediaSession(track);
+          renderOfflineTracks();
+        }).catch(() => {
+          state.isPlaying = false;
+          updatePlayerUI(track);
+          showToast('बजाउनको लागि Play बटन थिच्नुहोस्।', 'info');
+        });
+      }
+
+      function togglePlayPause() {
+        if (!state.currentTrackId) return;
+        if (audioEl.paused) {
+          audioEl.play().then(() => {
+            state.isPlaying = true;
+            syncPlayStateIcons();
+            renderOfflineTracks();
+          }).catch(() => {});
+        } else {
+          audioEl.pause();
+          state.isPlaying = false;
+          syncPlayStateIcons();
+          renderOfflineTracks();
+        }
+      }
+
+      function playNextTrack() {
+        if (!state.queue.length) return;
+        if (state.repeatMode === 'one') {
+          audioEl.currentTime = 0;
+          audioEl.play().catch(() => {});
+          return;
+        }
+        if (state.shuffle && state.queue.length > 1) {
+          let nextIdx = state.queueIndex;
+          while (nextIdx === state.queueIndex) {
+            nextIdx = Math.floor(Math.random() * state.queue.length);
+          }
+          state.queueIndex = nextIdx;
+          loadAndPlayCurrentQueueIndex();
+          return;
+        }
+        if (state.queueIndex + 1 < state.queue.length) {
+          state.queueIndex++;
+          loadAndPlayCurrentQueueIndex();
+        } else if (state.repeatMode === 'all') {
+          state.queueIndex = 0;
+          loadAndPlayCurrentQueueIndex();
+        } else {
+          state.isPlaying = false;
+          syncPlayStateIcons();
+          renderOfflineTracks();
+        }
+      }
+
+      function playPrevTrack() {
+        if (!state.queue.length) return;
+        if (audioEl.currentTime > 3) {
+          audioEl.currentTime = 0;
+          return;
+        }
+        state.queueIndex = state.queueIndex > 0 ? state.queueIndex - 1 : state.queue.length - 1;
+        loadAndPlayCurrentQueueIndex();
+      }
+
+      function updatePlayerUI(track) {
+        document.getElementById('miniPlayer').classList.remove('hidden');
+        document.getElementById('miniTrackTitle').textContent = track.title;
+        document.getElementById('fullTrackTitle').textContent = track.title;
+        document.getElementById('fullTrackMeta').textContent = `${track.artist || 'स्थानीय मिडिया'} • ${formatSize(track.size)} • अफलाइन`;
+
+        const imgEl = document.getElementById('fullArtworkImg');
+        if (track.thumbnail) {
+          imgEl.src = track.thumbnail;
+          imgEl.classList.remove('hidden');
+        } else {
+          imgEl.classList.add('hidden');
+          imgEl.src = '';
+        }
+        syncPlayStateIcons();
+      }
+
+      function syncPlayStateIcons() {
+        const playing = !audioEl.paused && state.isPlaying;
+        document.getElementById('miniPlayPauseBtn').innerHTML = `<i data-lucide="${playing ? 'pause' : 'play'}" class="w-5 h-5 fill-black ${playing ? '' : 'ml-0.5'}"></i>`;
+        document.getElementById('fullPlayPauseBtn').innerHTML = `<i data-lucide="${playing ? 'pause' : 'play'}" class="w-7 h-7 fill-black ${playing ? '' : 'ml-0.5'}"></i>`;
+        document.getElementById('miniEq').classList.toggle('eq-paused', !playing);
+        document.getElementById('fullArtwork').classList.toggle('eq-paused', !playing);
+
+        if ('mediaSession' in navigator) {
+          navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
+        }
+        refreshIcons();
+      }
+
+      function setupMediaSession(track) {
+        if (!('mediaSession' in navigator)) return;
+        try {
+          const metaInit = {
+            title: track.title,
+            artist: track.artist || 'SangeetTube (अफलाइन)',
+            album: track.album || 'अफलाइन मिडिया भल्ट'
+          };
+          if (track.thumbnail) {
+            metaInit.artwork = [{ src: track.thumbnail, sizes: '320x180', type: 'image/jpeg' }];
+          }
+          navigator.mediaSession.metadata = new MediaMetadata(metaInit);
+          navigator.mediaSession.setActionHandler('play', () => togglePlayPause());
+          navigator.mediaSession.setActionHandler('pause', () => togglePlayPause());
+          navigator.mediaSession.setActionHandler('previoustrack', () => playPrevTrack());
+          navigator.mediaSession.setActionHandler('nexttrack', () => playNextTrack());
+          navigator.mediaSession.setActionHandler('seekto', (details) => {
+            if (details.seekTime != null && Number.isFinite(audioEl.duration)) {
+              audioEl.currentTime = details.seekTime;
+            }
+          });
+        } catch (e) {
+          // Partial MediaSession support
+        }
+      }
+
+      // ================= EDIT DETAILS MODAL =================
+      function openEditDetailsModal(kind, id) {
+        state.editingItem = { kind, id };
+        const item = kind === 'offline'
+          ? state.offlineTracks.find((t) => t.id === id)
+          : state.savedYt.find((y) => y.id === id);
+        if (!item) return;
+
+        document.getElementById('editTitleInput').value = item.title || '';
+        document.getElementById('editArtistInput').value = kind === 'offline' ? (item.artist || '') : (item.channel || '');
+        document.getElementById('editAlbumInput').value = item.album || '';
+        document.getElementById('editTagsInput').value = item.tags || '';
+        document.getElementById('editDescInput').value = item.description || '';
+        document.getElementById('editFavCheckbox').checked = !!item.favorite;
+        document.getElementById('editDetailsModal').classList.remove('hidden');
+      }
+
+      // ================= SLEEP TIMER =================
+      function cycleSleepTimer() {
+        const options = [0, 15, 30, 60];
+        state.sleepMinutes = options[(options.indexOf(state.sleepMinutes) + 1) % options.length];
+
+        if (state.sleepInterval) {
+          clearInterval(state.sleepInterval);
+          state.sleepInterval = null;
+        }
+
+        const badge = document.getElementById('sleepTimerBadge');
+        if (state.sleepMinutes === 0) {
+          state.sleepEndTime = null;
+          badge.classList.add('hidden');
+          showToast('निद्रा टाइमर बन्द गरियो।', 'info');
+          return;
+        }
+
+        state.sleepEndTime = Date.now() + state.sleepMinutes * 60 * 1000;
+        badge.classList.remove('hidden');
+        showToast(`निद्रा टाइमर: ${state.sleepMinutes} मिनेटमा गाना स्वतः रोकिनेछ।`, 'success');
+
+        const updateBadge = () => {
+          const rem = Math.max(0, Math.ceil((state.sleepEndTime - Date.now()) / 1000));
+          if (rem <= 0) {
+            audioEl.pause();
+            state.isPlaying = false;
+            syncPlayStateIcons();
+            state.sleepMinutes = 0;
+            state.sleepEndTime = null;
+            clearInterval(state.sleepInterval);
+            state.sleepInterval = null;
+            badge.classList.add('hidden');
+            showToast('निद्रा टाइमर पूरा भयो — गाना रोकियो।', 'info');
+          } else {
+            badge.textContent = `टाइमर: ${formatTime(rem)}`;
+          }
+        };
+        updateBadge();
+        state.sleepInterval = setInterval(updateBadge, 1000);
+      }
+
+      // ================= PLAYLISTS =================
+      function savePlaylists() {
+        lsSet(STORAGE_KEYS.PLAYLISTS, state.playlists);
+        document.getElementById('sidebarPlaylistCount').textContent = String(state.playlists.length);
+      }
+
+      function renderPlaylists() {
+        document.getElementById('sidebarPlaylistCount').textContent = String(state.playlists.length);
+        const emptyEl = document.getElementById('playlistsEmpty');
+        const grid = document.getElementById('playlistsGrid');
+        const detail = document.getElementById('playlistDetailCard');
+
+        if (state.activePlaylistId) {
+          const pl = state.playlists.find((p) => p.id === state.activePlaylistId);
+          if (pl) {
+            emptyEl.classList.add('hidden');
+            grid.classList.add('hidden');
+            detail.classList.remove('hidden');
+            renderPlaylistDetail(pl);
+            return;
+          }
+          state.activePlaylistId = null;
+        }
+
+        detail.classList.add('hidden');
+        grid.classList.remove('hidden');
+
+        if (!state.playlists.length) {
+          emptyEl.classList.remove('hidden');
+          grid.innerHTML = '';
+          return;
+        }
+        emptyEl.classList.add('hidden');
+
+        grid.innerHTML = state.playlists.map((pl) => `
+          <button type="button" data-open-pl="${escapeHtml(pl.id)}" class="bg-[#181818] hover:bg-[#202020] border border-zinc-800 rounded-2xl p-4 text-left flex items-center gap-3.5 transition">
+            <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#ff0033]/80 to-zinc-800 flex items-center justify-center shrink-0">
+              <i data-lucide="list-music" class="w-6 h-6 text-white"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+              <h3 class="text-sm font-semibold text-white truncate">${escapeHtml(pl.name)}</h3>
+              <p class="text-xs text-zinc-400 mt-0.5">${pl.items.length} वटा गाना</p>
+            </div>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-zinc-500"></i>
+          </button>
+        `).join('');
+
+        grid.querySelectorAll('[data-open-pl]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            state.activePlaylistId = btn.dataset.openPl;
+            renderPlaylists();
+          });
+        });
+        refreshIcons();
+      }
+
+      function renderPlaylistDetail(pl) {
+        document.getElementById('playlistDetailTitle').textContent = pl.name;
+        document.getElementById('playlistDetailMeta').textContent = `${pl.items.length} वटा गाना`;
+        const listEl = document.getElementById('playlistDetailItems');
+
+        if (!pl.items.length) {
+          listEl.innerHTML = `<div class="p-6 text-center text-xs text-zinc-400 bg-[#121212] rounded-xl border border-zinc-800">यो प्लेलिस्टमा कुनै गाना छैन। युट्युब वा अफलाइन भल्टबाट गाना थप्नुहोस्।</div>`;
+          return;
+        }
+
+        listEl.innerHTML = pl.items.map((item, idx) => `
+          <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-[#121212] border border-zinc-800/80">
+            <button type="button" data-play-pl-item="${idx}" class="flex items-center gap-3 min-w-0 flex-1 text-left">
+              <div class="w-8 h-8 rounded-lg ${item.kind === 'offline' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-[#ff4d6d]'} flex items-center justify-center shrink-0">
+                <i data-lucide="${item.kind === 'offline' ? 'headphones' : 'youtube'}" class="w-4 h-4"></i>
+              </div>
+              <div class="min-w-0">
+                <div class="text-xs sm:text-sm font-medium text-white truncate">${escapeHtml(item.title)}</div>
+                <div class="text-[11px] text-zinc-400">${item.kind === 'offline' ? 'अफलाइन भल्ट' : 'युट्युब भिडियो'}</div>
+              </div>
+            </button>
+            <button type="button" data-rem-pl-item="${idx}" class="p-1.5 rounded-lg hover:bg-red-500/20 text-zinc-400 hover:text-red-400" title="प्लेलिस्टबाट हटाउनुहोस्">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `).join('');
+
+        listEl.querySelectorAll('[data-play-pl-item]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const item = pl.items[Number(btn.dataset.playPlItem)];
+            if (!item) return;
+            if (item.kind === 'offline') {
+              const offlineIds = pl.items.filter((x) => x.kind === 'offline').map((x) => x.id);
+              const idx = offlineIds.indexOf(item.id);
+              if (state.offlineTracks.some((t) => t.id === item.id)) {
+                playOfflineQueue(offlineIds, idx);
+              } else {
+                showToast('यो अफलाइन फाइल डिभाइसबाट मेटिइसकेको छ।', 'error');
+              }
+            } else {
+              const ytObj = state.savedYt.find((x) => x.id === item.id) || { id: item.id, title: item.title, isPlaylist: false };
+              playYouTubeItem(ytObj);
+            }
+          });
+        });
+
+        listEl.querySelectorAll('[data-rem-pl-item]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            pl.items.splice(Number(btn.dataset.remPlItem), 1);
+            savePlaylists();
+            renderPlaylistDetail(pl);
+          });
+        });
+        refreshIcons();
+      }
+
+      function openAddToPlaylistModal(item) {
+        state.pendingPlaylistItem = item;
+        document.getElementById('addToPlItemLabel').textContent = item.title;
+        const listEl = document.getElementById('addToPlList');
+        if (!state.playlists.length) {
+          listEl.innerHTML = `<p class="text-xs text-zinc-400 text-center py-3">पहिले नयाँ प्लेलिस्ट बनाउनुहोस्।</p>`;
+        } else {
+          listEl.innerHTML = state.playlists.map((pl) => `
+            <button type="button" data-pick-pl="${escapeHtml(pl.id)}" class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-[#0f0f0f] hover:bg-zinc-800 border border-zinc-800 text-left text-xs font-medium text-white transition">
+              <span class="truncate">${escapeHtml(pl.name)}</span>
+              <span class="text-zinc-400 shrink-0">${pl.items.length} गाना</span>
+            </button>
+          `).join('');
+          listEl.querySelectorAll('[data-pick-pl]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              const pl = state.playlists.find((p) => p.id === btn.dataset.pickPl);
+              if (pl && state.pendingPlaylistItem) {
+                const dup = pl.items.some((x) => x.kind === state.pendingPlaylistItem.kind && x.id === state.pendingPlaylistItem.id);
+                if (!dup) {
+                  pl.items.push({ ...state.pendingPlaylistItem });
+                  savePlaylists();
+                  showToast(`"${pl.name}" मा थपियो!`, 'success');
+                } else {
+                  showToast('यो गाना पहिले नै उक्त प्लेलिस्टमा छ।', 'info');
+                }
+              }
+              document.getElementById('addToPlaylistModal').classList.add('hidden');
+            });
+          });
+        }
+        document.getElementById('addToPlaylistModal').classList.remove('hidden');
+        refreshIcons();
+      }
+
+      // ================= BACKUP, EXPORT & STORAGE QUOTA =================
+      async function renderStorageStats() {
+        const totalBytes = state.offlineTracks.reduce((sum, t) => sum + (t.size || 0), 0);
+        document.getElementById('statOfflineCount').textContent = String(state.offlineTracks.length);
+        document.getElementById('statOfflineSize').textContent = formatSize(totalBytes);
+        document.getElementById('statYtCount').textContent = String(state.savedYt.length);
+
+        const persistBadge = document.getElementById('persistStatusBadge');
+        if (navigator.storage && navigator.storage.persisted) {
+          try {
+            const persisted = await navigator.storage.persisted();
+            persistBadge.textContent = persisted ? 'स्थायी स्टोरेज सुरक्षित ✓' : 'अस्थायी स्टोरेज';
+            persistBadge.className = persisted
+              ? 'text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+              : 'text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30';
+          } catch (e) {
+            persistBadge.textContent = 'मानक स्टोरेज';
+          }
+        } else {
+          persistBadge.textContent = 'मानक स्टोरेज';
+        }
+
+        if (navigator.storage && navigator.storage.estimate) {
+          try {
+            const est = await navigator.storage.estimate();
+            if (est && est.quota) {
+              document.getElementById('statQuotaText').textContent = `${(est.quota / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+            }
+          } catch (e) {}
+        }
+      }
+
+      function exportLibraryBackup() {
+        const payload = {
+          app: 'SangeetTubePro',
+          exportedAt: new Date().toISOString(),
+          savedYt: state.savedYt,
+          playlists: state.playlists,
+          offlineCatalog: state.offlineTracks.map((t) => ({
+            id: t.id,
+            title: t.title,
+            artist: t.artist,
+            album: t.album,
+            tags: t.tags,
+            description: t.description,
+            favorite: !!t.favorite,
+            mediaType: t.mediaType,
+            fileName: t.fileName,
+            size: t.size,
+            duration: t.duration,
+            addedAt: t.addedAt
+          }))
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sangeettube-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        showToast('ब्याकअप फाइल (JSON) डाउनलोड भयो!', 'success');
+      }
+
+      async function importLibraryBackup(file) {
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const data = JSON.parse(text);
+          let restoredYt = 0;
+          let restoredPl = 0;
+
+          if (Array.isArray(data.savedYt)) {
+            for (const item of data.savedYt) {
+              if (item && item.id && !state.savedYt.some((x) => x.id === item.id)) {
+                state.savedYt.push(item);
+                restoredYt++;
+              }
+            }
+            lsSet(STORAGE_KEYS.SAVED_YT, state.savedYt);
+          }
+
+          if (Array.isArray(data.playlists)) {
+            for (const pl of data.playlists) {
+              if (pl && pl.id && !state.playlists.some((x) => x.id === pl.id)) {
+                state.playlists.push(pl);
+                restoredPl++;
+              }
+            }
+            savePlaylists();
+          }
+
+          // Merge metadata updates for matching offline files by fileName
+          if (Array.isArray(data.offlineCatalog)) {
+            for (const meta of data.offlineCatalog) {
+              const local = state.offlineTracks.find((t) => t.fileName === meta.fileName);
+              if (local) {
+                local.title = meta.title || local.title;
+                local.artist = meta.artist || local.artist;
+                local.album = meta.album || local.album;
+                local.tags = meta.tags || local.tags;
+                local.description = meta.description || local.description;
+                local.favorite = !!meta.favorite;
+                await dbPutTrack(local);
+              }
+            }
+          }
+
+          renderSavedYt();
+          renderPlaylists();
+          renderOfflineTracks();
+          renderStorageStats();
+          showToast(`रिट्राइभ सफल: ${restoredYt} युट्युब विवरण र ${restoredPl} प्लेलिस्ट थपिए!`, 'success');
+        } catch (e) {
+          showToast('अमान्य ब्याकअप JSON फाइल।', 'error');
+        }
+      }
+
+      // ================= CONFIRM MODAL =================
+      function openConfirm(title, message, onConfirm) {
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmMessage').textContent = message;
+        state.confirmCallback = onConfirm;
+        document.getElementById('confirmModal').classList.remove('hidden');
+      }
+
+      // ================= EVENT LISTENERS =================
+      function bindEvents() {
+        document.querySelectorAll('[data-nav]').forEach((btn) => {
+          btn.addEventListener('click', () => switchTab(btn.dataset.nav));
+        });
+        document.getElementById('brandHomeBtn').addEventListener('click', () => switchTab('youtube'));
+        document.getElementById('headerSettingsBtn').addEventListener('click', () => switchTab('settings'));
+        document.getElementById('openApiSettingsBtn').addEventListener('click', () => switchTab('settings'));
+
+        // Search scope buttons
+        document.getElementById('searchScopeOnlineBtn').addEventListener('click', () => {
+          state.searchScope = 'both';
+          updateSearchScopeUI();
+        });
+        document.getElementById('searchScopeOfflineBtn').addEventListener('click', () => {
+          state.searchScope = 'offline';
+          updateSearchScopeUI();
+          const q = document.getElementById('ytQueryInput').value.trim();
+          if (q) searchOfflineVault(q);
+        });
+        document.getElementById('clearUnifiedOfflineBtn').addEventListener('click', () => {
+          document.getElementById('unifiedOfflineResultsSection').classList.add('hidden');
+        });
+
+        // Network changes
+        window.addEventListener('online', () => {
+          updateNetworkUI();
+          showToast('इन्टरनेट जडान भयो!', 'success');
+        });
+        window.addEventListener('offline', () => {
+          updateNetworkUI();
+          showToast('अफलाइन मोड सक्रिय — अब सबै खोज अफलाइन भल्टबाट चल्नेछ।', 'info');
+        });
+
+        // Unified Search & YouTube Form
+        const ytInput = document.getElementById('ytQueryInput');
+        const clearBtn = document.getElementById('clearYtInputBtn');
+        ytInput.addEventListener('input', () => {
+          clearBtn.classList.toggle('hidden', !ytInput.value);
+          // Instant live offline vault search as user types (like online autocomplete!)
+          if (ytInput.value.trim().length >= 2 && !ytInput.value.includes('http')) {
+            searchOfflineVault(ytInput.value.trim());
+          } else if (!ytInput.value.trim()) {
+            document.getElementById('unifiedOfflineResultsSection').classList.add('hidden');
+          }
+        });
+        clearBtn.addEventListener('click', () => {
+          ytInput.value = '';
+          clearBtn.classList.add('hidden');
+          document.getElementById('unifiedOfflineResultsSection').classList.add('hidden');
+          ytInput.focus();
+        });
+
+        document.getElementById('pasteYtBtn').addEventListener('click', async () => {
+          try {
+            const text = await navigator.clipboard.readText();
+            if (text) {
+              ytInput.value = text;
+              clearBtn.classList.remove('hidden');
+              showToast('लिङ्क पेस्ट भयो!', 'info');
+            }
+          } catch (e) {
+            showToast('क्लिपबोर्ड एक्सेस अनुमति छैन — बक्समा थिचेर म्यानुअल पेस्ट गर्नुहोस्।', 'info');
+          }
+        });
+
+        document.getElementById('ytInputForm').addEventListener('submit', (ev) => {
+          ev.preventDefault();
+          const parsed = parseYouTubeInput(ytInput.value);
+          if (!parsed) {
+            showToast('कृपया गानाको नाम, विवरण वा युट्युब लिङ्क लेख्नुहोस्।', 'info');
+            return;
+          }
+          if (parsed.type === 'video') {
+            playYouTubeItem({ id: parsed.id, title: `YouTube Video (${parsed.id})`, channel: 'YouTube', isPlaylist: false });
+          } else if (parsed.type === 'playlist') {
+            playYouTubeItem({ id: parsed.id, title: 'YouTube Playlist', channel: 'YouTube Playlist', isPlaylist: true });
+          } else {
+            // Always search offline vault immediately
+            searchOfflineVault(parsed.query);
+            // If online and scope allows, also search YouTube API
+            if (state.searchScope === 'both' && navigator.onLine) {
+              searchYouTubeAPI(parsed.query);
+            }
+          }
+        });
+
+        document.getElementById('toggleEmbedModeBtn').addEventListener('click', () => {
+          state.useNoCookieEmbed = !state.useNoCookieEmbed;
+          if (state.currentYt) {
+            playYouTubeItem(state.currentYt);
+            showToast(state.useNoCookieEmbed ? 'No-Cookie Embed मोड सक्रिय गरियो' : 'मानक YouTube Embed मोड सक्रिय गरियो', 'info');
+          }
+        });
+        document.getElementById('saveCurrentYtBtn').addEventListener('click', () => {
+          if (state.currentYt) saveYouTubeToLibrary(state.currentYt);
+        });
+        document.getElementById('addCurrentYtPlaylistBtn').addEventListener('click', () => {
+          if (state.currentYt) openAddToPlaylistModal({ kind: 'yt', id: state.currentYt.id, title: state.currentYt.title });
+        });
+        document.getElementById('closeYtPlayerBtn').addEventListener('click', () => {
+          document.getElementById('ytIframe').src = '';
+          document.getElementById('ytPlayerCard').classList.add('hidden');
+          state.currentYt = null;
+        });
+        document.getElementById('clearSearchResultsBtn').addEventListener('click', () => {
+          state.searchResults = [];
+          renderSearchResults();
+        });
+
+        // Offline Video Player controls
+        document.getElementById('switchVideoToBgAudioBtn').addEventListener('click', switchVideoToBackgroundAudio);
+        document.getElementById('closeOfflineVideoBtn').addEventListener('click', closeOfflineVideoPlayer);
+        document.getElementById('pipVideoBtn').addEventListener('click', async () => {
+          try {
+            if (document.pictureInPictureEnabled && videoEl.requestPictureInPicture) {
+              await videoEl.requestPictureInPicture();
+            } else {
+              showToast('यो ब्राउजरमा Picture-in-Picture उपलब्ध छैन।', 'info');
+            }
+          } catch (e) {
+            showToast('PiP सक्रिय गर्न सकिएन।', 'info');
+          }
+        });
+
+        // Offline Vault Import, Filter & Controls
+        const fileInput = document.getElementById('audioFileInput');
+        document.getElementById('importAudioBtn').addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (ev) => {
+          importAudioFiles(ev.target.files);
+          ev.target.value = '';
+        });
+
+        document.querySelectorAll('.offline-filter-chip').forEach((chip) => {
+          chip.addEventListener('click', () => {
+            state.offlineFilter = chip.dataset.offlineFilter;
+            document.querySelectorAll('.offline-filter-chip').forEach((c) => {
+              const act = c.dataset.offlineFilter === state.offlineFilter;
+              c.className = `offline-filter-chip px-3 py-1 rounded-full text-xs font-medium transition ${
+                act ? 'bg-white text-black' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+              }`;
+            });
+            renderOfflineTracks();
+          });
+        });
+
+        document.getElementById('offlineSearchInput').addEventListener('input', renderOfflineTracks);
+        document.getElementById('offlineSortSelect').addEventListener('change', renderOfflineTracks);
+
+        document.getElementById('playAllOfflineBtn').addEventListener('click', () => {
+          const list = getFilteredOfflineTracks();
+          if (!list.length) return showToast('पहिले कम्तीमा १ वटा अफलाइन फाइल थप्नुहोस्।', 'info');
+          state.shuffle = false;
+          updateShuffleRepeatUI();
+          playOfflineQueue(list.map((t) => t.id), 0);
+        });
+
+        document.getElementById('shuffleAllOfflineBtn').addEventListener('click', () => {
+          const list = getFilteredOfflineTracks();
+          if (!list.length) return showToast('पहिले कम्तीमा १ वटा अफलाइन फाइल थप्नुहोस्।', 'info');
+          state.shuffle = true;
+          updateShuffleRepeatUI();
+          playOfflineQueue(list.map((t) => t.id), Math.floor(Math.random() * list.length));
+        });
+
+        // Edit Details Form
+        document.getElementById('closeEditDetailsBtn').addEventListener('click', () => {
+          document.getElementById('editDetailsModal').classList.add('hidden');
+        });
+        document.getElementById('cancelEditDetailsBtn').addEventListener('click', () => {
+          document.getElementById('editDetailsModal').classList.add('hidden');
+        });
+        document.getElementById('editDetailsForm').addEventListener('submit', async (ev) => {
+          ev.preventDefault();
+          if (!state.editingItem) return;
+          const title = document.getElementById('editTitleInput').value.trim();
+          const artist = document.getElementById('editArtistInput').value.trim();
+          const album = document.getElementById('editAlbumInput').value.trim();
+          const tags = document.getElementById('editTagsInput').value.trim();
+          const desc = document.getElementById('editDescInput').value.trim();
+          const fav = document.getElementById('editFavCheckbox').checked;
+
+          if (state.editingItem.kind === 'offline') {
+            const trk = state.offlineTracks.find((t) => t.id === state.editingItem.id);
+            if (trk) {
+              trk.title = title || trk.title;
+              trk.artist = artist;
+              trk.album = album;
+              trk.tags = tags;
+              trk.description = desc;
+              trk.favorite = fav;
+              await dbPutTrack(trk);
+              renderOfflineTracks();
+              if (state.currentTrackId === trk.id) {
+                updatePlayerUI(trk);
+                setupMediaSession(trk);
+              }
+            }
+          } else {
+            const yt = state.savedYt.find((y) => y.id === state.editingItem.id);
+            if (yt) {
+              yt.title = title || yt.title;
+              yt.channel = artist || yt.channel;
+              yt.album = album;
+              yt.tags = tags;
+              yt.description = desc;
+              yt.favorite = fav;
+              lsSet(STORAGE_KEYS.SAVED_YT, state.savedYt);
+              renderSavedYt();
+            }
+          }
+          document.getElementById('editDetailsModal').classList.add('hidden');
+          showToast('विवरण सफलतापूर्वक अपडेट भयो!', 'success');
+        });
+
+        // Mini & Full Player Controls
+        document.getElementById('openFullPlayerBtn').addEventListener('click', () => {
+          document.getElementById('fullPlayerModal').classList.remove('hidden');
+        });
+        document.getElementById('closeFullPlayerBtn').addEventListener('click', () => {
+          document.getElementById('fullPlayerModal').classList.add('hidden');
+        });
+        document.getElementById('miniPlayPauseBtn').addEventListener('click', togglePlayPause);
+        document.getElementById('fullPlayPauseBtn').addEventListener('click', togglePlayPause);
+        document.getElementById('miniPrevBtn').addEventListener('click', playPrevTrack);
+        document.getElementById('fullPrevBtn').addEventListener('click', playPrevTrack);
+        document.getElementById('miniNextBtn').addEventListener('click', playNextTrack);
+        document.getElementById('fullNextBtn').addEventListener('click', playNextTrack);
+        document.getElementById('cycleSleepTimerBtn').addEventListener('click', cycleSleepTimer);
+
+        document.getElementById('fullShuffleBtn').addEventListener('click', () => {
+          state.shuffle = !state.shuffle;
+          updateShuffleRepeatUI();
+          showToast(state.shuffle ? 'Shuffle अन गरियो' : 'Shuffle अफ गरियो', 'info');
+        });
+
+        document.getElementById('fullRepeatBtn').addEventListener('click', () => {
+          const modes = ['off', 'all', 'one'];
+          state.repeatMode = modes[(modes.indexOf(state.repeatMode) + 1) % modes.length];
+          updateShuffleRepeatUI();
+          const labels = { off: 'Repeat बन्द', all: 'सबै दोहोर्याउनुहोस्', one: 'यही गाना दोहोर्याउनुहोस्' };
+          showToast(labels[state.repeatMode], 'info');
+        });
+
+        const seekSlider = document.getElementById('fullSeekSlider');
+        seekSlider.addEventListener('input', () => {
+          if (Number.isFinite(audioEl.duration) && audioEl.duration > 0) {
+            audioEl.currentTime = (Number(seekSlider.value) / 100) * audioEl.duration;
+          }
+        });
+
+        audioEl.addEventListener('timeupdate', () => {
+          const cur = audioEl.currentTime || 0;
+          const dur = Number.isFinite(audioEl.duration) ? audioEl.duration : 0;
+          const pct = dur > 0 ? (cur / dur) * 100 : 0;
+          document.getElementById('miniProgressFill').style.width = `${pct}%`;
+          document.getElementById('miniTrackSub').textContent = `अफलाइन • ${formatTime(cur)} / ${formatTime(dur)}`;
+          document.getElementById('fullCurrentTime').textContent = formatTime(cur);
+          document.getElementById('fullTotalTime').textContent = formatTime(dur);
+          seekSlider.value = String(pct);
+        });
+
+        audioEl.addEventListener('ended', playNextTrack);
+        audioEl.addEventListener('play', () => {
+          state.isPlaying = true;
+          syncPlayStateIcons();
+          renderOfflineTracks();
+        });
+        audioEl.addEventListener('pause', () => {
+          state.isPlaying = false;
+          syncPlayStateIcons();
+          renderOfflineTracks();
+        });
+
+        // Playlists Modal & Controls
+        document.getElementById('createPlaylistBtn').addEventListener('click', () => {
+          document.getElementById('newPlaylistNameInput').value = '';
+          document.getElementById('createPlaylistModal').classList.remove('hidden');
+          document.getElementById('newPlaylistNameInput').focus();
+        });
+        document.getElementById('quickNewPlFromAddBtn').addEventListener('click', () => {
+          document.getElementById('addToPlaylistModal').classList.add('hidden');
+          document.getElementById('newPlaylistNameInput').value = '';
+          document.getElementById('createPlaylistModal').classList.remove('hidden');
+          document.getElementById('newPlaylistNameInput').focus();
+        });
+        document.getElementById('closeCreatePlModalBtn').addEventListener('click', () => {
+          document.getElementById('createPlaylistModal').classList.add('hidden');
+        });
+        document.getElementById('cancelCreatePlBtn').addEventListener('click', () => {
+          document.getElementById('createPlaylistModal').classList.add('hidden');
+        });
+        document.getElementById('closeAddToPlModalBtn').addEventListener('click', () => {
+          document.getElementById('addToPlaylistModal').classList.add('hidden');
+        });
+
+        document.getElementById('createPlaylistForm').addEventListener('submit', (ev) => {
+          ev.preventDefault();
+          const name = document.getElementById('newPlaylistNameInput').value.trim();
+          if (!name) return;
+          const newPl = { id: `pl_${Date.now()}`, name, items: [] };
+          if (state.pendingPlaylistItem) {
+            newPl.items.push({ ...state.pendingPlaylistItem });
+            state.pendingPlaylistItem = null;
+          }
+          state.playlists.unshift(newPl);
+          savePlaylists();
+          document.getElementById('createPlaylistModal').classList.add('hidden');
+          renderPlaylists();
+          showToast(`"${name}" प्लेलिस्ट बन्यो!`, 'success');
+        });
+
+        document.getElementById('backToPlaylistsBtn').addEventListener('click', () => {
+          state.activePlaylistId = null;
+          renderPlaylists();
+        });
+
+        document.getElementById('playPlaylistOfflineBtn').addEventListener('click', () => {
+          const pl = state.playlists.find((p) => p.id === state.activePlaylistId);
+          if (!pl) return;
+          const offlineIds = pl.items
+            .filter((x) => x.kind === 'offline' && state.offlineTracks.some((t) => t.id === x.id))
+            .map((x) => x.id);
+          if (!offlineIds.length) return showToast('यो प्लेलिस्टमा कुनै उपलब्ध अफलाइन फाइल छैन।', 'info');
+          playOfflineQueue(offlineIds, 0);
+        });
+
+        document.getElementById('deleteCurrentPlaylistBtn').addEventListener('click', () => {
+          const pl = state.playlists.find((p) => p.id === state.activePlaylistId);
+          if (!pl) return;
+          openConfirm(
+            'प्लेलिस्ट मेटाउनुहोस्?',
+            `"${pl.name}" प्लेलिस्ट मेटाउन चाहनुहुन्छ? (फाइलहरू सुरक्षित रहनेछन्)`,
+            () => {
+              state.playlists = state.playlists.filter((p) => p.id !== pl.id);
+              state.activePlaylistId = null;
+              savePlaylists();
+              renderPlaylists();
+              showToast('प्लेलिस्ट मेटाइयो।', 'info');
+            }
+          );
+        });
+
+        // Settings, Storage Persist & JSON Backup/Import
+        document.getElementById('requestPersistBtn').addEventListener('click', async () => {
+          if (navigator.storage && navigator.storage.persist) {
+            const granted = await navigator.storage.persist();
+            renderStorageStats();
+            showToast(granted ? 'स्थायी स्टोरेज सुरक्षित भयो!' : 'ब्राउजरले अस्थायी मोडमै राख्यो (एप होम स्क्रिनमा थप्दा स्थायी हुन्छ)।', granted ? 'success' : 'info');
+          } else {
+            showToast('यो ब्राउजरमा Storage Persist API उपलब्ध छैन।', 'info');
+          }
+        });
+
+        document.getElementById('exportBackupBtn').addEventListener('click', exportLibraryBackup);
+        const importInput = document.getElementById('importBackupInput');
+        document.getElementById('importBackupBtn').addEventListener('click', () => importInput.click());
+        importInput.addEventListener('change', (ev) => {
+          if (ev.target.files && ev.target.files[0]) importLibraryBackup(ev.target.files[0]);
+          ev.target.value = '';
+        });
+
+        document.getElementById('saveApiKeyBtn').addEventListener('click', () => {
+          state.apiKey = document.getElementById('apiKeyInput').value.trim();
+          lsSet(STORAGE_KEYS.API_KEY, state.apiKey);
+          updateApiStatusUI();
+          showToast(state.apiKey ? 'YouTube API Key सेभ भयो!' : 'API Key खाली गरियो।', 'success');
+        });
+        document.getElementById('clearApiKeyBtn').addEventListener('click', () => {
+          state.apiKey = '';
+          lsSet(STORAGE_KEYS.API_KEY, '');
+          updateApiStatusUI();
+          showToast('API Key हटाइयो।', 'info');
+        });
+
+        document.getElementById('clearOfflineStorageBtn').addEventListener('click', () => {
+          if (!state.offlineTracks.length) return showToast('अफलाइन भल्ट पहिले नै खाली छ।', 'info');
+          openConfirm(
+            'सबै अफलाइन फाइल मेटाउनुहोस्?',
+            `भल्टमा सेभ गरिएका सबै ${state.offlineTracks.length} वटा अडियो/भिडियो फाइल हट्नेछन्।`,
+            async () => {
+              await dbClearTracks();
+              state.offlineTracks = [];
+              state.queue = [];
+              state.currentTrackId = null;
+              audioEl.pause();
+              closeOfflineVideoPlayer();
+              document.getElementById('miniPlayer').classList.add('hidden');
+              renderOfflineTracks();
+              renderStorageStats();
+              showToast('अफलाइन भल्ट खाली गरियो।', 'info');
+            }
+          );
+        });
+
+        document.getElementById('confirmCancelBtn').addEventListener('click', () => {
+          document.getElementById('confirmModal').classList.add('hidden');
+          state.confirmCallback = null;
+        });
+        document.getElementById('confirmOkBtn').addEventListener('click', async () => {
+          document.getElementById('confirmModal').classList.add('hidden');
+          if (typeof state.confirmCallback === 'function') await state.confirmCallback();
+          state.confirmCallback = null;
+        });
+      }
+
+      function updateShuffleRepeatUI() {
+        const shBtn = document.getElementById('fullShuffleBtn');
+        const rpBtn = document.getElementById('fullRepeatBtn');
+        shBtn.className = `p-2.5 rounded-full transition ${state.shuffle ? 'text-[#ff0033] bg-[#ff0033]/15' : 'text-zinc-400 hover:text-white'}`;
+        if (state.repeatMode === 'off') {
+          rpBtn.className = 'p-2.5 rounded-full text-zinc-400 hover:text-white transition';
+          rpBtn.innerHTML = `<i data-lucide="repeat" class="w-5 h-5"></i>`;
+        } else if (state.repeatMode === 'all') {
+          rpBtn.className = 'p-2.5 rounded-full text-[#ff0033] bg-[#ff0033]/15 transition';
+          rpBtn.innerHTML = `<i data-lucide="repeat" class="w-5 h-5"></i>`;
+        } else {
+          rpBtn.className = 'p-2.5 rounded-full text-[#ff0033] bg-[#ff0033]/15 transition';
+          rpBtn.innerHTML = `<i data-lucide="repeat-1" class="w-5 h-5"></i>`;
+        }
+        refreshIcons();
+      }
+
+      // ================= INITIALIZATION =================
+      async function init() {
+        updateNetworkUI();
+        updateApiStatusUI();
+        updateSearchScopeUI();
+        bindEvents();
+        renderSavedYt();
+        renderPlaylists();
+        switchTab('youtube');
+
+        state.offlineTracks = await dbGetAllTracks();
+        renderOfflineTracks();
+        renderStorageStats();
+        refreshIcons();
+      }
+
+      window.addEventListener('DOMContentLoaded', init);
+    })();
+  </script>
+</body>
+</html>
